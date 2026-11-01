@@ -73,15 +73,27 @@ export const Header: React.FC<HeaderProps> = ({
           </button>
 
           {currentUser?.isLoggedIn ? (
-            <button
-              onClick={() => handleNav('student-dashboard')}
-              className={`whitespace-nowrap shrink-0 transition-colors hover:text-white flex items-center gap-1.5 cursor-pointer ${
-                currentRoute === 'student-dashboard' ? 'text-[#9B59B6] font-semibold border-b-2 border-[#9B59B6] pb-0.5' : ''
-              }`}
-            >
-              <GraduationCap className="w-4 h-4 text-[#9B59B6]" />
-              <span>Dashboard</span>
-            </button>
+            currentUser.role === 'INSTRUCTOR' || currentUser.role === 'MENTOR' || currentUser.role === 'ADMIN' ? (
+              <button
+                onClick={() => handleNav('faculty-reviews')}
+                className={`whitespace-nowrap shrink-0 transition-colors hover:text-white flex items-center gap-1.5 cursor-pointer ${
+                  currentRoute === 'faculty-reviews' ? 'text-[#9B59B6] font-semibold border-b-2 border-[#9B59B6] pb-0.5' : ''
+                }`}
+              >
+                <GraduationCap className="w-4 h-4 text-[#9B59B6]" />
+                <span>Faculty Reviews</span>
+              </button>
+            ) : (
+              <button
+                onClick={() => handleNav('student-dashboard')}
+                className={`whitespace-nowrap shrink-0 transition-colors hover:text-white flex items-center gap-1.5 cursor-pointer ${
+                  currentRoute === 'student-dashboard' ? 'text-[#9B59B6] font-semibold border-b-2 border-[#9B59B6] pb-0.5' : ''
+                }`}
+              >
+                <GraduationCap className="w-4 h-4 text-[#9B59B6]" />
+                <span>Dashboard</span>
+              </button>
+            )
           ) : (
             <button
               onClick={() => handleNav('login')}

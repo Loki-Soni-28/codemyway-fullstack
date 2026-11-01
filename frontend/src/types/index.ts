@@ -1,12 +1,17 @@
-export type NavigationRoute = 'home' | 'course-details' | 'skill-store' | 'student-dashboard' | 'login';
+export type NavigationRoute = 'home' | 'course-details' | 'skill-store' | 'student-dashboard' | 'login' | 'faculty-reviews' | 'admin-dashboard';
+
+export type UserRole = 'STUDENT' | 'ADMIN' | 'INSTRUCTOR' | 'MENTOR';
 
 export interface StudentUser {
+  id?: string;
   fullName: string;
   email: string;
   mobile: string;
+  role?: UserRole;
   isLoggedIn: boolean;
   avatarUrl?: string;
   enrolledCourse?: string;
+  studentProfile?: any;
 }
 
 export interface LeadCaptureData {

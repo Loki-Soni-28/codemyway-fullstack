@@ -9,6 +9,11 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
+  const profile = user.studentProfile;
+  if (!profile || !profile.batchId) {
+    return NextResponse.json({ error: 'No active cohort batch assigned' }, { status: 403 });
+  }
+
   try {
     const body = await req.json();
     const { questionId, answer, timeSpent } = body;
@@ -40,21 +45,47 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Question not found' }, { status: 404 });
     }
 
+    // Security check: Verify that this assignment's class belongs to the student's assigned batch
+    if (question.assignment.class.batchId !== profile.batchId) {
+      return NextResponse.json({ error: 'Access denied: Assignment belongs to another batch' }, { status: 403 });
+    }
+
     // Auto-grading logic (case insensitive exact match for demo SQL/MCQ answers)
-    const isCorrect = answer.trim().toLowerCase() === question.correctAnswer.trim().toLowerCase();
+    const isCorrect = String(answer).trim().toLowerCase() === String(question.correctAnswer).trim().toLowerCase();
     const score = isCorrect ? question.points : 0;
 
-    // Save submission to SQLite database
-    const submission = await prisma.submission.create({
-      data: {
+    // Check if submission already exists for this student and question (Upsert/Idempotency)
+    const existingSubmission = await prisma.submission.findFirst({
+      where: {
         studentId: user.id,
-        questionId: question.id,
-        answer,
-        isCorrect,
-        score,
-        timeSpent: timeSpent || 30,
+        questionId: question.id
       }
     });
+
+    let submission;
+    if (existingSubmission) {
+      submission = await prisma.submission.update({
+        where: { id: existingSubmission.id },
+        data: {
+          answer: String(answer),
+          isCorrect,
+          score,
+          timeSpent: timeSpent || existingSubmission.timeSpent,
+          submittedAt: new Date()
+        }
+      });
+    } else {
+      submission = await prisma.submission.create({
+        data: {
+          studentId: user.id,
+          questionId: question.id,
+          answer: String(answer),
+          isCorrect,
+          score,
+          timeSpent: timeSpent || 30,
+        }
+      });
+    }
 
     // Stream submission to Google BigQuery Data Warehouse
     const assignmentTitle = question.assignment.title;

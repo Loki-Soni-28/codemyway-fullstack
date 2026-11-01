@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { api } from '../../api';
 import { 
   BookOpen, 
   Play, 
@@ -40,7 +41,8 @@ import {
   PieChart,
   BarChart3,
   BrainCircuit,
-  Briefcase
+  Briefcase,
+  AlertCircle
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
@@ -57,6 +59,10 @@ export interface CurriculumProblem {
   solvedBy: number;
   description: string;
   solutionSnippet?: string;
+  options?: string[];
+  myAnswer?: string | null;
+  isCorrect?: boolean | null;
+  correctAnswer?: string;
 }
 
 export interface CurriculumClassItem {
@@ -1236,16 +1242,85 @@ interface CoreCurriculumViewProps {
   onOpenSupportModal?: () => void;
 }
 
+interface BackendCurriculumResponse {
+  success: boolean;
+  courseTitle: string;
+  courseDescription: string;
+  modules: Array<{
+    id: string;
+    title: string;
+    order: number;
+    progressPercent: number;
+    completedClasses: number;
+    totalClasses: number;
+    classes: Array<{
+      id: string;
+      title: string;
+      description: string | null;
+      date: string;
+      startTime: string;
+      endTime?: string;
+      duration?: string;
+      zoomLink?: string;
+      recordingUrl?: string | null;
+      instructorName?: string;
+      hasRecording?: boolean;
+      hasMaterials?: boolean;
+      preRead?: any;
+      postRead?: any;
+      status: string;
+      hasAttended: boolean;
+      assignment?: {
+        id: string;
+        title: string;
+        solved: number;
+        total: number;
+      } | null;
+    }>;
+  }>;
+}
+
 export const CoreCurriculumView: React.FC<CoreCurriculumViewProps> = ({ 
   onToggleSidebar,
   isSidebarOpen,
   onOpenSupportModal 
 }) => {
+  // Real Curriculum API State
+  const [curriculumData, setCurriculumData] = useState<BackendCurriculumResponse | null>(null);
+  const [isLoadingCurriculum, setIsLoadingCurriculum] = useState<boolean>(true);
+  const [curriculumError, setCurriculumError] = useState<string | null>(null);
+
+  // Class detail lazy-fetch cache & loading state
+  const [detailedClassLoading, setDetailedClassLoading] = useState<boolean>(false);
+
+  const fetchCurriculum = async () => {
+    setIsLoadingCurriculum(true);
+    setCurriculumError(null);
+    try {
+      const data = await api<BackendCurriculumResponse>('/student/curriculum');
+      if (data && data.success) {
+        setCurriculumData(data);
+        if (data.modules.length > 0) {
+          setSelectedModuleId(data.modules[0].id as any);
+        }
+      }
+    } catch (err: any) {
+      console.error('Failed to load curriculum:', err);
+      setCurriculumError(err.message || 'Unable to load your cohort curriculum.');
+    } finally {
+      setIsLoadingCurriculum(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchCurriculum();
+  }, []);
+
   // Top Bar Tabs: ONLY Core Skills And Curriculum & Skill Certification
   const [topTab, setTopTab] = useState<'curriculum' | 'certification'>('curriculum');
   
-  // Selected Module on Left Sidebar (Default to Module 1 or Module 5)
-  const [selectedModuleId, setSelectedModuleId] = useState<number>(1);
+  // Selected Module on Left Sidebar (Default to first module ID)
+  const [selectedModuleId, setSelectedModuleId] = useState<string | number>(1);
   
   // Active Class Detail View (Null = Class List View, Item = Class View)
   const [activeClass, setActiveClass] = useState<CurriculumClassItem | null>(null);
@@ -1265,26 +1340,250 @@ export const CoreCurriculumView: React.FC<CoreCurriculumViewProps> = ({
 
   // Code Problem Solver / Review Modal
   const [activeProblemModal, setActiveProblemModal] = useState<CurriculumProblem | null>(null);
+  const [selectedAnswer, setSelectedAnswer] = useState<string>('');
+  const [isSubmittingAnswer, setIsSubmittingAnswer] = useState<boolean>(false);
+  const [submissionFeedback, setSubmissionFeedback] = useState<{
+    status: 'correct' | 'incorrect' | 'error';
+    message: string;
+    score?: number;
+    explanation?: string;
+  } | null>(null);
+
+  // Sync selectedAnswer when opening a problem modal
+  const handleOpenProblem = (problem: CurriculumProblem) => {
+    setActiveProblemModal(problem);
+    setSelectedAnswer(problem.myAnswer || '');
+    setSubmissionFeedback(null);
+  };
+
+  // Submit Answer handler
+  const handleSubmitAnswer = async () => {
+    if (!activeProblemModal || !selectedAnswer.trim()) return;
+
+    setIsSubmittingAnswer(true);
+    setSubmissionFeedback(null);
+
+    try {
+      const res = await api<{
+        success: boolean;
+        submission: {
+          id: string;
+          isCorrect: boolean;
+          score: number;
+          correctAnswer: string;
+          explanation?: string;
+        };
+      }>('/student/submit-answer', {
+        method: 'POST',
+        body: {
+          questionId: activeProblemModal.id,
+          answer: selectedAnswer.trim(),
+          timeSpent: 60
+        }
+      });
+
+      if (res && res.success) {
+        const sub = res.submission;
+        setSubmissionFeedback({
+          status: sub.isCorrect ? 'correct' : 'incorrect',
+          message: sub.isCorrect
+            ? `Correct! You earned ${sub.score} points.`
+            : `Incorrect. The correct answer was: ${sub.correctAnswer}`,
+          score: sub.score,
+          explanation: sub.explanation
+        });
+
+        // Update modal state
+        setActiveProblemModal(prev => prev ? {
+          ...prev,
+          myAnswer: selectedAnswer.trim(),
+          isCorrect: sub.isCorrect,
+          correctAnswer: sub.correctAnswer,
+          score: `${sub.score}/${prev.score.split('/')[1] || 10}`,
+          status: sub.isCorrect ? 'Solved' : 'Attempted',
+          solutionSnippet: sub.explanation || prev.solutionSnippet
+        } : null);
+
+        // Update activeClass assignments list
+        setActiveClass(prev => {
+          if (!prev) return prev;
+          return {
+            ...prev,
+            assignments: prev.assignments.map(a => {
+              if (a.id === activeProblemModal.id) {
+                return {
+                  ...a,
+                  myAnswer: selectedAnswer.trim(),
+                  isCorrect: sub.isCorrect,
+                  correctAnswer: sub.correctAnswer,
+                  score: `${sub.score}/${a.score.split('/')[1] || 10}`,
+                  status: sub.isCorrect ? 'Solved' : 'Attempted',
+                  solutionSnippet: sub.explanation || a.solutionSnippet
+                };
+              }
+              return a;
+            })
+          };
+        });
+      }
+    } catch (err: any) {
+      console.error('Failed to submit answer:', err);
+      setSubmissionFeedback({
+        status: 'error',
+        message: err.message || 'Failed to submit answer. Please try again.'
+      });
+    } finally {
+      setIsSubmittingAnswer(false);
+    }
+  };
 
   // Feedback form state
   const [feedbackRating, setFeedbackRating] = useState<number>(5);
   const [feedbackText, setFeedbackText] = useState<string>('');
   const [feedbackSubmitted, setFeedbackSubmitted] = useState<boolean>(false);
 
-  const currentModule = COMPLETE_CURRICULUM_MODULES.find(m => m.id === selectedModuleId) || COMPLETE_CURRICULUM_MODULES[0];
+  // Map Backend Modules to Frontend UI CurriculumModuleItem representation
+  const dynamicModules: CurriculumModuleItem[] = (curriculumData?.modules && curriculumData.modules.length > 0)
+    ? curriculumData.modules.map((m, index) => {
+        const total = m.totalClasses;
+        const attended = m.classes.filter(c => c.hasAttended).length;
+        const attRate = total > 0 ? `${Math.round((attended / total) * 100)}%` : '0%';
+        const pspScore = `${m.progressPercent}%`;
 
-  // Handler to open class directly
-  const handleOpenClass = (cls: CurriculumClassItem) => {
+        // Determine Phase dynamically: First half is Phase 1 (Core Foundation), second half is Phase 2 (Advanced)
+        const phaseNum: 1 | 2 = (index < Math.ceil(curriculumData.modules.length / 2)) ? 1 : 2;
+
+        return {
+          id: m.id as any,
+          moduleNumber: m.order || index + 1,
+          phase: phaseNum,
+          title: m.title,
+          durationWeeks: `${m.totalClasses} Lectures`,
+          status: m.progressPercent === 100 ? 'completed' : m.progressPercent > 0 ? 'in-progress' : 'upcoming',
+          mockInterviewStatus: index === 0 ? 'Foundation Assessment' : 'Phase Evaluation',
+          attendancePercent: attRate,
+          modulePsp: pspScore,
+          classes: m.classes.map((c, cIdx) => ({
+            id: c.id,
+            dayNumber: `Class ${String(cIdx + 1).padStart(2, '0')}`,
+            title: c.title,
+            dateFormatted: c.date ? `${c.date} · ${c.startTime || '19:00'}` : 'Schedule Pending',
+            time: c.startTime || '19:00',
+            mandatory: true,
+            status: c.status === 'COMPLETED' ? 'completed' : c.status === 'IN_PROGRESS' || c.status === 'LIVE' ? 'in-progress' : 'upcoming',
+            lecturePercent: c.hasAttended ? '100%' : '0%',
+            assignmentCount: c.assignment ? `${c.assignment.solved}/${c.assignment.total}` : '0/0',
+            additionalProblemsCount: '0/0',
+            attendance: c.hasAttended ? 'Present' : 'Absent',
+            problemsSolved: c.assignment ? `${c.assignment.solved}` : '0',
+            recordingDuration: c.duration || '1h 30m',
+            preRead: {
+              title: c.preRead?.objectives ? `Pre-read: ${c.title}` : `Preparation for ${c.title}`,
+              readTime: '15 mins read',
+              summary: c.description || (c.preRead?.objectives ? c.preRead.objectives.join('. ') : 'Review module fundamentals before joining the live session.'),
+              keyPoints: c.preRead?.objectives || ['Review core topics before class', 'Prepare questions for the instructor', 'Complete any pending prior module practice'],
+              codeExample: undefined
+            },
+            session: {
+              title: c.title,
+              time: `${c.date} (${c.startTime || '19:00'})`,
+              duration: c.duration || '1h 30m',
+              attendanceCoins: 50,
+              archiveCoins: 25,
+              flashcards: [
+                { id: 1, question: `What is the core focus of ${c.title}?`, answer: c.description || 'Deep architectural mastery and practical implementations.' },
+                { id: 2, question: 'How is attendance credited?', answer: 'Attendance is marked when participating live in the scheduled batch lecture.' }
+              ]
+            },
+            assignments: c.assignment ? [
+              {
+                id: c.assignment.id,
+                qNumber: 1,
+                title: c.assignment.title,
+                type: 'mcq' as const,
+                difficulty: 'Medium' as const,
+                score: `${c.assignment.solved * 10}/${c.assignment.total * 10}`,
+                status: c.assignment.solved === c.assignment.total ? 'Solved' : 'Attempted',
+                submissions: c.assignment.solved,
+                solvedBy: c.assignment.solved,
+                description: `Complete the assignment for ${c.title} to test your understanding.`
+              }
+            ] : [],
+            additionalProblems: []
+          }))
+        };
+      })
+    : COMPLETE_CURRICULUM_MODULES;
+
+  const currentModule = dynamicModules.find(m => String(m.id) === String(selectedModuleId)) || dynamicModules[0];
+
+  // Handler to open class directly & fetch class details from /api/student/classes/[classId]
+  const handleOpenClass = async (cls: CurriculumClassItem) => {
     setActiveClass(cls);
     setClassInnerTab('session');
     setSelectedQuestionFilter('all');
     setCurrentFlashcardIndex(0);
     setIsFlashcardFlipped(false);
+
+    // Call class details API to ensure we have the most accurate, live recordingUrl and assignments
+    try {
+      setDetailedClassLoading(true);
+      const res = await api<{ success: boolean; class: any }>(`/student/classes/${cls.id}`);
+      if (res && res.success && res.class) {
+        const detailed = res.class;
+        setActiveClass((prev) => {
+          if (!prev || prev.id !== cls.id) return prev;
+          return {
+            ...prev,
+            title: detailed.title || prev.title,
+            recordingDuration: detailed.recordingUrl ? (prev.recordingDuration || '1h 30m') : undefined,
+            attendance: detailed.attendanceStatus === 'PRESENT' ? 'Present' : detailed.attendanceStatus,
+            session: {
+              ...prev.session,
+              title: detailed.title || prev.session.title,
+              time: `${detailed.date} (${detailed.startTime} - ${detailed.endTime})`,
+            },
+            preRead: detailed.preRead ? {
+              title: `Pre-read: ${detailed.title}`,
+              readTime: '15 mins read',
+              summary: detailed.description || 'Review foundational concepts before the lecture.',
+              keyPoints: detailed.preRead.objectives || prev.preRead.keyPoints,
+              codeExample: undefined
+            } : prev.preRead,
+            assignments: (detailed.assignments && detailed.assignments.length > 0)
+              ? detailed.assignments.flatMap((a: any) =>
+                  a.questions.map((q: any, qIdx: number) => ({
+                    id: q.id,
+                    qNumber: qIdx + 1,
+                    title: `Q${qIdx + 1}. ${q.text.slice(0, 45)}...`,
+                    type: (q.type?.toLowerCase() === 'coding' ? 'code' : 'mcq') as any,
+                    difficulty: (a.difficulty === 'HARD' ? 'Hard' : a.difficulty === 'EASY' ? 'Easy' : 'Medium') as any,
+                    score: `${q.score || 0}/${q.points || 10}`,
+                    status: (q.isCorrect ? 'Solved' : q.myAnswer ? 'Attempted' : 'Unsolved') as any,
+                    submissions: q.myAnswer ? 1 : 0,
+                    solvedBy: 1,
+                    description: q.text,
+                    options: Array.isArray(q.options) ? q.options : undefined,
+                    myAnswer: q.myAnswer || null,
+                    isCorrect: q.isCorrect !== undefined ? q.isCorrect : null,
+                    correctAnswer: q.correctAnswer,
+                    solutionSnippet: q.explanation || undefined
+                  }))
+                )
+              : prev.assignments
+          };
+        });
+      }
+    } catch (err) {
+      console.warn('Could not fetch class detail, retaining base curriculum data:', err);
+    } finally {
+      setDetailedClassLoading(false);
+    }
   };
 
   // Switch to next/previous class inside class view
   const handleNavigateClass = (direction: 'next' | 'prev') => {
-    if (!activeClass) return;
+    if (!activeClass || !currentModule) return;
     const currentIndex = currentModule.classes.findIndex(c => c.id === activeClass.id);
     if (direction === 'prev' && currentIndex > 0) {
       handleOpenClass(currentModule.classes[currentIndex - 1]);
@@ -1301,8 +1600,8 @@ export const CoreCurriculumView: React.FC<CoreCurriculumViewProps> = ({
   ) : [];
 
   // Grouped modules for Phase 1 and Phase 2
-  const phase1Modules = COMPLETE_CURRICULUM_MODULES.filter(m => m.phase === 1);
-  const phase2Modules = COMPLETE_CURRICULUM_MODULES.filter(m => m.phase === 2);
+  const phase1Modules = dynamicModules.filter(m => m.phase === 1);
+  const phase2Modules = dynamicModules.filter(m => m.phase === 2);
 
   return (
     <div className="w-full bg-[#F8FAFC] text-[#0F172A] min-h-screen font-sans border-t border-[#E2E8F0]">
@@ -1398,7 +1697,24 @@ export const CoreCurriculumView: React.FC<CoreCurriculumViewProps> = ({
              STATE B: Inside Class View (Matches Screenshots 2 & 3)
          ======================================================== */}
       
-      {!activeClass ? (
+      {isLoadingCurriculum ? (
+        <div className="flex flex-col items-center justify-center p-20 space-y-4">
+          <div className="w-10 h-10 rounded-full border-2 border-blue-500/20 border-t-[#2563EB] animate-spin" />
+          <p className="text-xs text-[#64748B] font-mono tracking-wider animate-pulse">Loading Enrolled Cohort Curriculum...</p>
+        </div>
+      ) : curriculumError ? (
+        <div className="max-w-md mx-auto my-16 p-6 rounded-2xl bg-white border border-rose-200 text-center space-y-4 shadow-sm">
+          <AlertCircle className="w-8 h-8 text-rose-500 mx-auto" />
+          <h3 className="text-sm font-bold text-[#0F172A]">Curriculum Connection Error</h3>
+          <p className="text-xs text-[#64748B]">{curriculumError}</p>
+          <button
+            onClick={() => fetchCurriculum()}
+            className="px-4 py-2 bg-[#2563EB] hover:bg-blue-700 text-white rounded-xl text-xs font-semibold cursor-pointer"
+          >
+            Retry Loading
+          </button>
+        </div>
+      ) : !activeClass ? (
         /* ======================================================
             STATE A: MODULES LIST (LEFT) + CLASSES LIST (RIGHT)
            ====================================================== */
@@ -1661,52 +1977,64 @@ export const CoreCurriculumView: React.FC<CoreCurriculumViewProps> = ({
 
               {/* Day-by-Day Classes List */}
               <div className="divide-y divide-[#F1F5F9]">
-                {currentModule.classes.map((cls) => (
-                  <div
-                    key={cls.id}
-                    onClick={() => handleOpenClass(cls)}
-                    className="p-4 sm:p-5 hover:bg-[#F8FAFC] transition-colors flex flex-col md:flex-row md:items-center justify-between gap-3 sm:gap-4 cursor-pointer group"
-                  >
-                    {/* Left: Day & Title */}
-                    <div className="flex items-start sm:items-center gap-3.5 min-w-0">
-                      <span className="text-xs font-mono font-bold text-[#64748B] whitespace-nowrap shrink-0 min-w-[100px]">
-                        {cls.dayNumber}
-                      </span>
-                      <h4 className="text-xs sm:text-sm font-semibold text-[#0F172A] group-hover:text-[#2563EB] transition-colors leading-relaxed">
-                        {cls.title}
-                      </h4>
-                    </div>
+                {currentModule?.classes && currentModule.classes.length > 0 ? (
+                  currentModule.classes.map((cls) => (
+                    <div
+                      key={cls.id}
+                      onClick={() => handleOpenClass(cls)}
+                      className="p-4 sm:p-5 hover:bg-[#F8FAFC] transition-colors flex flex-col md:flex-row md:items-center justify-between gap-3 sm:gap-4 cursor-pointer group"
+                    >
+                      {/* Left: Day & Title */}
+                      <div className="flex items-start sm:items-center gap-3.5 min-w-0">
+                        <span className="text-xs font-mono font-bold text-[#64748B] whitespace-nowrap shrink-0 min-w-[100px]">
+                          {cls.dayNumber}
+                        </span>
+                        <h4 className="text-xs sm:text-sm font-semibold text-[#0F172A] group-hover:text-[#2563EB] transition-colors leading-relaxed">
+                          {cls.title}
+                        </h4>
+                      </div>
 
-                    {/* Right: Telemetry (Lecture %, Assignment, Additional Problem, Arrow) */}
-                    <div className="flex items-center gap-3 sm:gap-6 shrink-0 self-end md:self-auto text-xs">
-                      {cls.masteryMode && (
-                        <div className="hidden sm:flex items-center gap-1 text-[11px] font-semibold text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200/60">
-                          <Trophy className="w-3 h-3 text-amber-500" />
-                          <span>{cls.masteryMode}</span>
+                      {/* Right: Telemetry (Lecture %, Assignment, Additional Problem, Arrow) */}
+                      <div className="flex items-center gap-3 sm:gap-6 shrink-0 self-end md:self-auto text-xs">
+                        {cls.masteryMode && (
+                          <div className="hidden sm:flex items-center gap-1 text-[11px] font-semibold text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200/60">
+                            <Trophy className="w-3 h-3 text-amber-500" />
+                            <span>{cls.masteryMode}</span>
+                          </div>
+                        )}
+
+                        <div className="text-right">
+                          <span className="text-[10px] text-[#94A3B8] block">Lecture</span>
+                          <span className="text-xs font-bold text-emerald-600">{cls.lecturePercent}</span>
                         </div>
-                      )}
 
-                      <div className="text-right">
-                        <span className="text-[10px] text-[#94A3B8] block">Lecture</span>
-                        <span className="text-xs font-bold text-emerald-600">{cls.lecturePercent}</span>
-                      </div>
+                        <div className="text-right">
+                          <span className="text-[10px] text-[#94A3B8] block">Assignment</span>
+                          <span className="text-xs font-bold text-[#0F172A] font-mono">{cls.assignmentCount}</span>
+                        </div>
 
-                      <div className="text-right">
-                        <span className="text-[10px] text-[#94A3B8] block">Assignment</span>
-                        <span className="text-xs font-bold text-[#0F172A] font-mono">{cls.assignmentCount}</span>
-                      </div>
+                        <div className="text-right">
+                          <span className="text-[10px] text-[#94A3B8] block">Additional Problem</span>
+                          <span className="text-xs font-bold text-[#0F172A] font-mono">{cls.additionalProblemsCount}</span>
+                        </div>
 
-                      <div className="text-right">
-                        <span className="text-[10px] text-[#94A3B8] block">Additional Problem</span>
-                        <span className="text-xs font-bold text-[#0F172A] font-mono">{cls.additionalProblemsCount}</span>
-                      </div>
-
-                      <div className="p-1 rounded-md text-[#CBD5E1] group-hover:text-[#2563EB] group-hover:translate-x-1 transition-all">
-                        <ChevronRight className="w-5 h-5" />
+                        <div className="p-1 rounded-md text-[#CBD5E1] group-hover:text-[#2563EB] group-hover:translate-x-1 transition-all">
+                          <ChevronRight className="w-5 h-5" />
+                        </div>
                       </div>
                     </div>
+                  ))
+                ) : (
+                  <div className="p-12 text-center space-y-3">
+                    <div className="w-10 h-10 rounded-xl bg-blue-50 text-[#2563EB] flex items-center justify-center mx-auto">
+                      <BookOpen className="w-5 h-5" />
+                    </div>
+                    <h4 className="text-sm font-bold text-[#0F172A]">No Classes Scheduled in this Module Yet</h4>
+                    <p className="text-xs text-[#64748B] max-w-sm mx-auto">
+                      Lectures and assignments for this module will be published according to your cohort schedule.
+                    </p>
                   </div>
-                ))}
+                )}
               </div>
 
             </main>
@@ -2184,7 +2512,7 @@ export const CoreCurriculumView: React.FC<CoreCurriculumViewProps> = ({
                             
                             <td className="py-3.5 px-4 font-semibold text-[#0F172A]">
                               <button
-                                onClick={() => setActiveProblemModal(problem)}
+                                onClick={() => handleOpenProblem(problem)}
                                 className="text-left hover:text-[#2563EB] transition-colors cursor-pointer"
                               >
                                 {problem.title}
@@ -2243,7 +2571,7 @@ export const CoreCurriculumView: React.FC<CoreCurriculumViewProps> = ({
                                   <HelpCircle className="w-3.5 h-3.5" />
                                 </button>
                                 <button
-                                  onClick={() => setActiveProblemModal(problem)}
+                                  onClick={() => handleOpenProblem(problem)}
                                   className="px-3.5 py-1 rounded-md bg-[#2563EB] hover:bg-blue-700 text-white text-xs font-semibold shadow-xs transition-colors cursor-pointer"
                                 >
                                   Solve
@@ -2507,13 +2835,81 @@ export const CoreCurriculumView: React.FC<CoreCurriculumViewProps> = ({
                   </p>
                 </div>
 
+                {/* Multiple Choice Options or Text Input */}
+                {activeProblemModal.options && activeProblemModal.options.length > 0 ? (
+                  <div className="space-y-2">
+                    <h5 className="text-xs font-bold uppercase text-[#64748B] tracking-wider">Select Your Answer:</h5>
+                    <div className="grid grid-cols-1 gap-2">
+                      {activeProblemModal.options.map((option, idx) => {
+                        const isSelected = selectedAnswer === option;
+                        return (
+                          <button
+                            key={idx}
+                            type="button"
+                            onClick={() => setSelectedAnswer(option)}
+                            className={`p-3 rounded-xl border text-left text-xs sm:text-sm font-medium transition-all flex items-center justify-between cursor-pointer ${
+                              isSelected
+                                ? 'bg-blue-50 border-[#2563EB] text-[#1E40AF] ring-2 ring-blue-500/20'
+                                : 'bg-[#F8FAFC] border-[#E2E8F0] text-[#334155] hover:border-[#CBD5E1]'
+                            }`}
+                          >
+                            <span>{option}</span>
+                            <div className={`w-4 h-4 rounded-full border flex items-center justify-center ${
+                              isSelected ? 'border-[#2563EB] bg-[#2563EB]' : 'border-[#94A3B8]'
+                            }`}>
+                              {isSelected && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
+                            </div>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    <h5 className="text-xs font-bold uppercase text-[#64748B] tracking-wider">Your Answer / Code:</h5>
+                    <textarea
+                      value={selectedAnswer}
+                      onChange={(e) => setSelectedAnswer(e.target.value)}
+                      placeholder="Write your answer or code query here..."
+                      rows={4}
+                      className="w-full p-3 rounded-xl bg-[#F8FAFC] border border-[#CBD5E1] text-xs sm:text-sm text-[#0F172A] font-mono focus:outline-none focus:ring-2 focus:ring-[#2563EB]/20 focus:border-[#2563EB]"
+                    />
+                  </div>
+                )}
+
+                {/* Submission Feedback Banner */}
+                {submissionFeedback && (
+                  <div className={`p-3.5 rounded-xl border flex items-start gap-2.5 text-xs ${
+                    submissionFeedback.status === 'correct'
+                      ? 'bg-emerald-50 border-emerald-200 text-emerald-800'
+                      : submissionFeedback.status === 'incorrect'
+                      ? 'bg-rose-50 border-rose-200 text-rose-800'
+                      : 'bg-amber-50 border-amber-200 text-amber-800'
+                  }`}>
+                    {submissionFeedback.status === 'correct' ? (
+                      <Check className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5 stroke-[3]" />
+                    ) : (
+                      <AlertCircle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
+                    )}
+                    <div>
+                      <p className="font-bold">{submissionFeedback.message}</p>
+                      {submissionFeedback.explanation && (
+                        <p className="mt-1 text-[11px] opacity-90">{submissionFeedback.explanation}</p>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* Submitted / Verified Solution Section */}
                 {activeProblemModal.solutionSnippet && (
                   <div className="space-y-1.5">
                     <div className="flex items-center justify-between">
-                      <h5 className="text-xs font-bold uppercase text-[#64748B] tracking-wider">Submitted & Verified Solution:</h5>
-                      <span className="text-[10px] text-emerald-600 font-bold flex items-center gap-1">
-                        <Check className="w-3 h-3 stroke-[3]" /> All Test Cases Passed
-                      </span>
+                      <h5 className="text-xs font-bold uppercase text-[#64748B] tracking-wider">Solution Explanation:</h5>
+                      {activeProblemModal.isCorrect && (
+                        <span className="text-[10px] text-emerald-600 font-bold flex items-center gap-1">
+                          <Check className="w-3 h-3 stroke-[3]" /> Verified Correct
+                        </span>
+                      )}
                     </div>
                     <pre className="p-4 rounded-xl bg-[#0F172A] text-emerald-400 font-mono text-xs overflow-x-auto leading-relaxed border border-[#334155]">
                       <code>{activeProblemModal.solutionSnippet}</code>
@@ -2523,13 +2919,34 @@ export const CoreCurriculumView: React.FC<CoreCurriculumViewProps> = ({
               </div>
 
               <div className="p-4 bg-[#F8FAFC] border-t border-[#E2E8F0] flex items-center justify-between text-xs">
-                <span className="text-[#64748B]">Submissions: {activeProblemModal.submissions} · Solved By: {activeProblemModal.solvedBy} students</span>
-                <button
-                  onClick={() => setActiveProblemModal(null)}
-                  className="px-4 py-1.5 rounded-lg bg-[#2563EB] hover:bg-blue-700 text-white font-bold cursor-pointer"
-                >
-                  Close Solution
-                </button>
+                <span className="text-[#64748B]">
+                  {activeProblemModal.myAnswer ? `Status: ${activeProblemModal.status}` : 'Not yet submitted'}
+                </span>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => setActiveProblemModal(null)}
+                    className="px-3.5 py-1.5 rounded-lg border border-[#CBD5E1] hover:bg-[#F1F5F9] text-[#475569] font-semibold cursor-pointer"
+                  >
+                    Close
+                  </button>
+                  <button
+                    onClick={handleSubmitAnswer}
+                    disabled={isSubmittingAnswer || !selectedAnswer.trim()}
+                    className="px-4 py-1.5 rounded-lg bg-[#2563EB] hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold cursor-pointer flex items-center gap-1.5"
+                  >
+                    {isSubmittingAnswer ? (
+                      <>
+                        <div className="w-3.5 h-3.5 rounded-full border-2 border-white/20 border-t-white animate-spin" />
+                        <span>Submitting...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Send className="w-3.5 h-3.5" />
+                        <span>Submit Answer</span>
+                      </>
+                    )}
+                  </button>
+                </div>
               </div>
             </motion.div>
           </div>

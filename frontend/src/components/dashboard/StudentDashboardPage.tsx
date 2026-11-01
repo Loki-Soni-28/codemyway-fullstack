@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { NavigationRoute, StudentUser } from '../../types';
+import { api } from '../../api';
 import { CoreCurriculumView } from './CoreCurriculumView';
 import { BusinessProjectsView } from './projects/BusinessProjectsView';
 import { StudentMentorView } from './mentor/StudentMentorView';
+import { StudentWeeklyCheckInView } from './StudentWeeklyCheckInView';
 import { PersonalDetailsView } from './personal/PersonalDetailsView';
 import { 
   Rocket,
@@ -120,13 +122,131 @@ interface CurriculumModule {
   sqlWeeks?: SqlWeeklyStructure[];
 }
 
+export interface DashboardData {
+  student: {
+    id: string;
+    name: string;
+    email: string;
+    phone: string | null;
+    avatarUrl: string | null;
+    enrolledCourse: string;
+    batchName: string;
+    enrollmentStatus: string;
+    enrollmentDate: string;
+    mentor: { id: string; name: string; email: string } | null;
+  };
+  nextClass: {
+    id: string;
+    title: string;
+    description: string | null;
+    moduleTitle?: string;
+    date: string;
+    startTime: string;
+    endTime: string;
+    zoomLink: string;
+    status: string;
+    instructorName: string;
+  } | null;
+  upcomingClasses: Array<{
+    id: string;
+    title: string;
+    description: string | null;
+    moduleTitle: string;
+    date: string;
+    startTime: string;
+    endTime: string;
+    zoomLink: string;
+    status: string;
+    instructorName: string;
+  }>;
+  todayLearning: {
+    classId: string | null;
+    classTitle: string;
+    classStatus: string;
+    preRead: any;
+    postRead: any;
+    assignment: any;
+  };
+  progress: {
+    modulesCompleted: number;
+    totalModules: number;
+    modulesPercentage: number;
+    classesAttended: number;
+    totalClasses: number;
+    assignmentProgress: number;
+    assignmentScore: number;
+  };
+  attendance: {
+    percentage: number;
+    attended: number;
+    missed: number;
+    total: number;
+  };
+  assignments: {
+    totalAssigned: number;
+    submitted: number;
+    pending: number;
+    evaluated: number;
+    accuracy: number;
+    earnedPoints: number;
+    totalPoints: number;
+  };
+  recentActivity: Array<{
+    id: string;
+    type: string;
+    title: string;
+    timestamp: string;
+    status: string;
+    score: number | null;
+  }>;
+  leaderboardPreview: any[];
+  myRank: {
+    rank: number;
+    score: number;
+  };
+  upcomingMentorSession: {
+    id: string;
+    mentorName: string;
+    date: string;
+    time: string;
+    topic: string;
+    zoomLink: string | null;
+    status: string;
+  } | null;
+}
+
 export const StudentDashboardPage: React.FC<StudentDashboardPageProps> = ({ 
   onRouteChange,
   currentUser,
   onLogout 
 }) => {
-  const studentName = currentUser?.fullName ? currentUser.fullName.split(' ')[0] : 'Learner';
-  const studentInitial = currentUser?.fullName ? currentUser.fullName.charAt(0).toUpperCase() : 'L';
+  // Real Database Overview API state
+  const [dashboardData, setDashboardData] = useState<DashboardData | null>(null);
+  const [isDashboardLoading, setIsDashboardLoading] = useState<boolean>(true);
+  const [dashboardError, setDashboardError] = useState<string | null>(null);
+
+  const fetchDashboardData = async () => {
+    setIsDashboardLoading(true);
+    setDashboardError(null);
+    try {
+      const data = await api<DashboardData & { success: boolean }>('/student/dashboard');
+      if (data && data.success) {
+        setDashboardData(data);
+      }
+    } catch (err: any) {
+      console.error('Error fetching student dashboard data:', err);
+      setDashboardError(err.message || 'Failed to load student dashboard from database.');
+    } finally {
+      setIsDashboardLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchDashboardData();
+  }, []);
+
+  const studentName = dashboardData?.student.name?.split(' ')[0] || (currentUser?.fullName ? currentUser.fullName.split(' ')[0] : 'Learner');
+  const studentInitial = dashboardData?.student.name ? dashboardData.student.name.charAt(0).toUpperCase() : (currentUser?.fullName ? currentUser.fullName.charAt(0).toUpperCase() : 'L');
 
   // "Welcome" on a student's first dashboard visit, "Welcome back" afterwards.
   const visitKey = `codemyway_dashboard_visited:${currentUser?.email ?? 'anon'}`;
@@ -423,6 +543,7 @@ export const StudentDashboardPage: React.FC<StudentDashboardPageProps> = ({
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { id: 'curriculum', label: 'Core Curriculum', icon: BookOpen },
     { id: 'assignments', label: 'Assignments', icon: FileText },
+    { id: 'weekly-checkin', label: 'Weekly Check-Ins', icon: Calendar },
     { id: 'mentor', label: 'Mentor', icon: Users },
     { id: 'projects', label: 'Business / Projects', icon: Briefcase },
     { id: 'personal', label: 'Personal Details', icon: User },
@@ -434,6 +555,7 @@ export const StudentDashboardPage: React.FC<StudentDashboardPageProps> = ({
   const secondaryTabs = [
     { id: 'curriculum', label: 'Core Curriculum', icon: BookOpen },
     { id: 'assignments', label: 'Assignments', icon: FileText },
+    { id: 'weekly-checkin', label: 'Weekly Check-Ins', icon: Calendar },
     { id: 'mentor', label: 'Mentor', icon: Users },
     { id: 'projects', label: 'Business / Projects', icon: Briefcase },
     { id: 'personal', label: 'Personal Details', icon: User },
@@ -817,10 +939,24 @@ export const StudentDashboardPage: React.FC<StudentDashboardPageProps> = ({
   ];
 
   // Active selected module object
-  // New student: nothing attended, submitted or completed yet.
-  const totalModules = curriculumModules.length;
+  // Real database metrics computed from backend records
+  const totalModules = dashboardData?.progress.totalModules ?? curriculumModules.length;
   const firstModule = curriculumModules[0];
-  const progress = { attendancePct: 0, assignmentPct: 0, modulesDone: 0, modulesPct: 0, points: 0 };
+  const progress = {
+    attendancePct: dashboardData ? dashboardData.attendance.percentage : 0,
+    classesAttended: dashboardData ? dashboardData.attendance.attended : 0,
+    classesTotal: dashboardData ? dashboardData.attendance.total : 0,
+    classesMissed: dashboardData ? dashboardData.attendance.missed : 0,
+    assignmentPct: dashboardData ? dashboardData.progress.assignmentProgress : 0,
+    assignmentsSubmitted: dashboardData ? dashboardData.assignments.submitted : 0,
+    assignmentsTotal: dashboardData ? dashboardData.assignments.totalAssigned : 0,
+    assignmentsPending: dashboardData ? dashboardData.assignments.pending : 0,
+    assignmentsEvaluated: dashboardData ? dashboardData.assignments.evaluated : 0,
+    assignmentAccuracy: dashboardData ? dashboardData.assignments.accuracy : 0,
+    modulesDone: dashboardData ? dashboardData.progress.modulesCompleted : 0,
+    modulesPct: dashboardData ? dashboardData.progress.modulesPercentage : 0,
+    points: dashboardData ? dashboardData.assignments.earnedPoints : 0
+  };
 
   const activeModule = curriculumModules.find(m => m.id === selectedModuleId) || curriculumModules[0];
 
@@ -1159,6 +1295,8 @@ export const StudentDashboardPage: React.FC<StudentDashboardPageProps> = ({
             studentName={studentName}
             onOpenSupportModal={() => setActiveModalMessage('Connecting you to your dedicated 1:1 Project Mentor & Review Committee...')}
           />
+        ) : activeNav === 'weekly-checkin' ? (
+          <StudentWeeklyCheckInView />
         ) : activeNav === 'mentor' ? (
           <StudentMentorView
             studentEmail={currentUser?.email}
@@ -1175,9 +1313,29 @@ export const StudentDashboardPage: React.FC<StudentDashboardPageProps> = ({
               B. OVERVIEW DASHBOARD VIEW (Screenshot 1)
              ====================================================== */
           <div className="flex-1 flex flex-col xl:flex-row overflow-x-hidden">
-            
-            {/* Center Column */}
-            <main className="flex-1 p-4 sm:p-6 lg:p-7 space-y-6">
+            {isDashboardLoading ? (
+              <div className="flex-1 flex flex-col items-center justify-center p-12 space-y-4">
+                <div className="w-10 h-10 rounded-full border-2 border-blue-500/20 border-t-blue-400 animate-spin" />
+                <p className="text-xs text-[#94A3B8] font-mono tracking-wider animate-pulse">Loading Live Dashboard Overview...</p>
+              </div>
+            ) : dashboardError ? (
+              <div className="flex-1 p-6 flex items-center justify-center">
+                <div className="max-w-md w-full bg-[#0D1527] border border-rose-500/30 rounded-2xl p-6 text-center space-y-4">
+                  <AlertCircle className="w-8 h-8 text-rose-400 mx-auto" />
+                  <h3 className="text-sm font-bold text-white">Dashboard Synchronisation Error</h3>
+                  <p className="text-xs text-[#94A3B8]">{dashboardError}</p>
+                  <button
+                    onClick={() => fetchDashboardData()}
+                    className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-xs font-semibold cursor-pointer"
+                  >
+                    Retry Loading
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <>
+              {/* Center Column */}
+              <main className="flex-1 p-4 sm:p-6 lg:p-7 space-y-6">
               
               {/* Welcome Header with Sidebar Toggle shortcut */}
               <motion.div 
@@ -1254,7 +1412,11 @@ export const StudentDashboardPage: React.FC<StudentDashboardPageProps> = ({
                         className="bg-emerald-400 h-full rounded-full shadow-[0_0_8px_rgba(52,211,153,0.5)]" 
                       />
                     </div>
-                    <div className="text-[11px] text-[#64748B]">No classes attended yet</div>
+                    <div className="text-[11px] text-[#64748B]">
+                      {progress.classesTotal > 0
+                        ? `${progress.classesAttended} of ${progress.classesTotal} completed classes attended (${progress.classesMissed} missed)`
+                        : 'No completed classes in your batch yet'}
+                    </div>
                   </div>
                 </motion.div>
 
@@ -1284,7 +1446,11 @@ export const StudentDashboardPage: React.FC<StudentDashboardPageProps> = ({
                         className="bg-sky-400 h-full rounded-full shadow-[0_0_8px_rgba(56,189,248,0.5)]" 
                       />
                     </div>
-                    <div className="text-[11px] text-[#64748B]">No assignments submitted yet</div>
+                    <div className="text-[11px] text-[#64748B]">
+                      {progress.assignmentsTotal > 0
+                        ? `${progress.assignmentsSubmitted} of ${progress.assignmentsTotal} questions submitted · ${progress.assignmentsPending} pending`
+                        : 'No active assignments for completed classes'}
+                    </div>
                   </div>
                 </motion.div>
 
@@ -1294,7 +1460,15 @@ export const StudentDashboardPage: React.FC<StudentDashboardPageProps> = ({
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.4, delay: 0.25 }}
                   whileHover={{ y: -3, transition: { duration: 0.2 } }}
-                  onClick={() => setActiveModalMessage('Your class schedule will appear here once your batch timetable is published.')}
+                  onClick={() => {
+                    if (dashboardData?.nextClass?.zoomLink && dashboardData.nextClass.status === 'LIVE') {
+                      window.open(dashboardData.nextClass.zoomLink, '_blank');
+                    } else if (dashboardData?.nextClass) {
+                      setActiveModalMessage(`Next Class: ${dashboardData.nextClass.title} on ${dashboardData.nextClass.date} at ${dashboardData.nextClass.startTime}. Meeting link opens when lecture starts.`);
+                    } else {
+                      setActiveModalMessage('Your class schedule will appear here once your batch timetable is published.');
+                    }
+                  }}
                   className="bg-[#0A1120] rounded-2xl p-5 border border-[#1A263D] hover:border-purple-500/50 hover:shadow-[0_0_20px_rgba(168,85,247,0.15)] shadow-sm flex items-center justify-between transition-all duration-300 cursor-pointer group"
                 >
                   <div className="flex items-start gap-3">
@@ -1303,16 +1477,28 @@ export const StudentDashboardPage: React.FC<StudentDashboardPageProps> = ({
                     </div>
                     <div>
                       <span className="text-xs text-[#94A3B8] font-medium block">Next Class / Session</span>
-                      <span className="text-xl sm:text-2xl font-bold text-white tracking-tight">
-                        Not scheduled
+                      <span className="text-base sm:text-lg font-bold text-white tracking-tight line-clamp-1">
+                        {dashboardData?.nextClass ? dashboardData.nextClass.title : 'Not scheduled'}
                       </span>
-                      <p className="text-xs font-semibold text-[#CBD5E1] mt-1 group-hover:text-purple-300 transition-colors">
-                        Your first class will show here
+                      <p className="text-xs font-semibold text-[#CBD5E1] mt-0.5 group-hover:text-purple-300 transition-colors">
+                        {dashboardData?.nextClass
+                          ? `${dashboardData.nextClass.date} · ${dashboardData.nextClass.startTime} (${dashboardData.nextClass.status})`
+                          : 'Your first class will show here'}
                       </p>
-                      <p className="text-[10px] text-[#64748B]">Batch timetable coming soon</p>
+                      <p className="text-[10px] text-[#64748B]">
+                        {dashboardData?.nextClass
+                          ? `Instructor: ${dashboardData.nextClass.instructorName}`
+                          : 'Batch timetable coming soon'}
+                      </p>
                     </div>
                   </div>
-                  <ChevronRight className="w-5 h-5 text-[#64748B] group-hover:text-white group-hover:translate-x-1.5 transition-all shrink-0 ml-2" />
+                  {dashboardData?.nextClass?.status === 'LIVE' ? (
+                    <span className="px-2.5 py-1 rounded-lg bg-emerald-500 text-white font-bold text-[10px] animate-pulse shrink-0">
+                      JOIN LIVE
+                    </span>
+                  ) : (
+                    <ChevronRight className="w-5 h-5 text-[#64748B] group-hover:text-white group-hover:translate-x-1.5 transition-all shrink-0 ml-2" />
+                  )}
                 </motion.div>
 
               </div>
@@ -1559,7 +1745,9 @@ export const StudentDashboardPage: React.FC<StudentDashboardPageProps> = ({
                   </div>
                   <div className="text-left">
                     <div className="text-xs font-bold text-white">{studentName}</div>
-                    <div className="text-[10px] text-emerald-400 font-mono">Enrolled</div>
+                    <div className="text-[10px] text-emerald-400 font-mono">
+                      {dashboardData?.student.enrolledCourse ? dashboardData.student.enrolledCourse.split(' ')[0] : 'Enrolled'} · {dashboardData?.student.batchName ? dashboardData.student.batchName.split(' ').slice(-2).join(' ') : 'Cohort'}
+                    </div>
                   </div>
                   <button
                     onClick={() => onLogout ? onLogout() : onRouteChange('login')}
@@ -1622,6 +1810,39 @@ export const StudentDashboardPage: React.FC<StudentDashboardPageProps> = ({
                 </div>
               </div>
 
+              {/* Recent Activity Card */}
+              <div className="bg-[#0A1120] rounded-2xl p-4 border border-[#1A263D] shadow-sm space-y-3">
+                <h4 className="text-xs font-bold text-white uppercase tracking-wider">Recent Activity</h4>
+                {dashboardData?.recentActivity && dashboardData.recentActivity.length > 0 ? (
+                  <div className="space-y-2.5">
+                    {dashboardData.recentActivity.map((act) => (
+                      <div key={act.id} className="p-2.5 rounded-xl bg-[#0D1527] border border-[#1E293B] flex items-center justify-between text-xs">
+                        <div className="flex items-center gap-2.5 min-w-0">
+                          <div className={`w-6 h-6 rounded-lg flex items-center justify-center shrink-0 ${
+                            act.type === 'CLASS_ATTENDANCE' ? 'bg-emerald-500/15 text-emerald-400' : 'bg-blue-500/15 text-blue-400'
+                          }`}>
+                            {act.type === 'CLASS_ATTENDANCE' ? <Calendar className="w-3.5 h-3.5" /> : <CheckCircle2 className="w-3.5 h-3.5" />}
+                          </div>
+                          <div className="truncate">
+                            <span className="text-white font-medium block truncate">{act.title}</span>
+                            <span className="text-[10px] text-[#64748B]">
+                              {new Date(act.timestamp).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })}
+                            </span>
+                          </div>
+                        </div>
+                        <span className="text-[10px] font-bold text-sky-400 shrink-0 ml-2">
+                          {act.status}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="p-3 rounded-xl bg-[#0D1527] border border-dashed border-[#1E293B] text-center text-[11px] text-[#64748B]">
+                    No activity recorded yet.
+                  </div>
+                )}
+              </div>
+
               {/* Upcoming Classes & Sessions */}
               <div className="bg-[#0A1120] rounded-2xl p-4 border border-[#1A263D] shadow-sm space-y-3.5">
                 <div className="flex items-center justify-between">
@@ -1634,15 +1855,46 @@ export const StudentDashboardPage: React.FC<StudentDashboardPageProps> = ({
                   </button>
                 </div>
 
-                <div className="p-4 rounded-xl bg-[#0D1527] border border-dashed border-[#1E293B] text-center space-y-2">
-                  <div className="w-9 h-9 rounded-lg bg-blue-500/15 text-blue-400 flex items-center justify-center mx-auto">
-                    <Calendar className="w-4 h-4" />
+                {dashboardData?.upcomingClasses && dashboardData.upcomingClasses.length > 0 ? (
+                  <div className="space-y-2.5">
+                    {dashboardData.upcomingClasses.map((cls) => (
+                      <div key={cls.id} className="p-3 rounded-xl bg-[#0D1527] border border-[#1E293B] hover:border-blue-500/30 transition-colors space-y-1.5">
+                        <div className="flex items-center justify-between">
+                          <span className="text-[10px] font-bold text-blue-400 uppercase tracking-wider">{cls.moduleTitle}</span>
+                          <span className={`text-[10px] px-2 py-0.5 rounded font-bold ${
+                            cls.status === 'LIVE' ? 'bg-emerald-500 text-white animate-pulse' : 'bg-[#152138] text-[#94A3B8]'
+                          }`}>
+                            {cls.status}
+                          </span>
+                        </div>
+                        <h5 className="text-xs font-bold text-white line-clamp-1">{cls.title}</h5>
+                        <div className="flex items-center justify-between text-[10px] text-[#64748B]">
+                          <span>{cls.date} · {cls.startTime}</span>
+                          <span>{cls.instructorName}</span>
+                        </div>
+                        {cls.status === 'LIVE' && (
+                          <button
+                            onClick={() => window.open(cls.zoomLink, '_blank')}
+                            className="w-full mt-1.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center justify-center gap-1.5 cursor-pointer shadow-md shadow-emerald-900/30"
+                          >
+                            <Video className="w-3.5 h-3.5" />
+                            <span>Join Live Class</span>
+                          </button>
+                        )}
+                      </div>
+                    ))}
                   </div>
-                  <h5 className="text-xs font-bold text-white">No upcoming sessions yet</h5>
-                  <p className="text-[10px] text-[#64748B] leading-relaxed">
-                    Live classes and mentor sessions will appear here once your batch schedule is published.
-                  </p>
-                </div>
+                ) : (
+                  <div className="p-4 rounded-xl bg-[#0D1527] border border-dashed border-[#1E293B] text-center space-y-2">
+                    <div className="w-9 h-9 rounded-lg bg-blue-500/15 text-blue-400 flex items-center justify-center mx-auto">
+                      <Calendar className="w-4 h-4" />
+                    </div>
+                    <h5 className="text-xs font-bold text-white">No upcoming sessions scheduled</h5>
+                    <p className="text-[10px] text-[#64748B] leading-relaxed">
+                      Upcoming live lectures and mentor sessions will appear here as soon as scheduled.
+                    </p>
+                  </div>
+                )}
               </div>
 
               {/* Quick Access Grid */}
@@ -1721,7 +1973,7 @@ export const StudentDashboardPage: React.FC<StudentDashboardPageProps> = ({
                       />
                       <motion.path
                         initial={{ strokeDasharray: "0, 100" }}
-                        animate={{ strokeDasharray: "0, 100" }}
+                        animate={{ strokeDasharray: `${dashboardData?.myRank ? Math.min(100, dashboardData.myRank.score) : 0}, 100` }}
                         transition={{ duration: 1.5, ease: "easeOut" }}
                         className="text-[#F59E0B]"
                         strokeWidth="3"
@@ -1731,16 +1983,24 @@ export const StudentDashboardPage: React.FC<StudentDashboardPageProps> = ({
                         d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
                       />
                     </svg>
-                    <span className="absolute text-sm font-extrabold text-white">--</span>
+                    <span className="absolute text-sm font-extrabold text-white">
+                      {dashboardData?.myRank ? `#${dashboardData.myRank.rank}` : '--'}
+                    </span>
                   </div>
 
                   <div className="flex-1 space-y-1">
-                    <div className="text-xs font-semibold text-white">Not ranked yet</div>
-                    <div className="text-[10px] text-[#94A3B8]">Submit your first assignment to join the board.</div>
+                    <div className="text-xs font-semibold text-white">
+                      {dashboardData?.myRank ? `Rank #${dashboardData.myRank.rank} in Batch` : 'Not ranked yet'}
+                    </div>
+                    <div className="text-[10px] text-[#94A3B8]">
+                      {dashboardData?.myRank && dashboardData.myRank.score > 0
+                        ? `Cumulative performance score: ${dashboardData.myRank.score}%`
+                        : 'Submit your first assignment to join the board.'}
+                    </div>
                     <div className="w-full bg-[#152138] h-1.5 rounded-full overflow-hidden">
                       <motion.div 
                         initial={{ width: 0 }}
-                        animate={{ width: `${(progress.points / 1000) * 100}%` }}
+                        animate={{ width: `${Math.min(100, (progress.points / 1000) * 100)}%` }}
                         transition={{ duration: 1.2, ease: "easeOut", delay: 0.3 }}
                         className="bg-blue-500 h-full rounded-full shadow-[0_0_8px_rgba(37,99,235,0.5)]" 
                       />
@@ -1751,6 +2011,10 @@ export const StudentDashboardPage: React.FC<StudentDashboardPageProps> = ({
               </motion.div>
 
             </aside>
+
+            {/* Close Overview loading/error condition */}
+            </>
+            )}
 
           </div>
         )}

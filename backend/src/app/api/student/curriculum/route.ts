@@ -23,8 +23,12 @@ export async function GET() {
           include: {
             classes: {
               where: { batchId: profile.batchId },
-              orderBy: { date: 'asc' },
+              orderBy: [
+                { date: 'asc' },
+                { startTime: 'asc' }
+              ],
               include: {
+                instructor: true,
                 assignments: {
                   include: {
                     questions: {
@@ -89,6 +93,15 @@ export async function GET() {
           description: cls.description,
           date: cls.date,
           startTime: cls.startTime,
+          endTime: cls.endTime,
+          duration: `${cls.startTime} - ${cls.endTime}`,
+          zoomLink: cls.zoomLink,
+          recordingUrl: cls.recordingUrl,
+          instructorName: cls.instructor.name,
+          hasRecording: !!cls.recordingUrl,
+          hasMaterials: !!cls.preRead,
+          preRead: cls.preRead ? JSON.parse(cls.preRead) : null,
+          postRead: cls.postRead ? JSON.parse(cls.postRead) : null,
           status,
           hasAttended: !!hasAttended,
           assignment: assignment ? {

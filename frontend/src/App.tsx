@@ -15,7 +15,9 @@ import { HomePage } from './components/home/HomePage';
 import { CourseDetailsPage } from './components/courses/CourseDetailsPage';
 import { SkillStorePage } from './components/skill-store/SkillStorePage';
 import { StudentDashboardPage } from './components/dashboard/StudentDashboardPage';
-import { AuthPage } from './components/auth/AuthPage';
+import { FacultyReviewView } from './components/dashboard/FacultyReviewView';
+import { AuthPage, toStudentUser } from './components/auth/AuthPage';
+import { api } from './api';
 
 export default function App() {
   // Determine initial route based on window.location.pathname
@@ -24,40 +26,74 @@ export default function App() {
     if (path.includes('/courses/data-analyst-genai')) return 'course-details';
     if (path.includes('/skill-store')) return 'skill-store';
     if (path.includes('/student/dashboard')) return 'student-dashboard';
+    if (path.includes('/faculty')) return 'faculty-reviews';
     if (path.includes('/login')) return 'login';
     return 'home';
   };
 
   const [currentRoute, setCurrentRoute] = useState<NavigationRoute>(getInitialRoute);
 
-  // Authenticated Student State (persisted in localStorage)
-  const [currentUser, setCurrentUser] = useState<StudentUser | null>(() => {
-    try {
-      const saved = localStorage.getItem('codemyway_student_user');
-      if (saved) return JSON.parse(saved);
-    } catch {
-      // fallback
-    }
-    return null;
-  });
+  // Authenticated User State (Server HTTP-only Cookie is the single source of truth)
+  const [currentUser, setCurrentUser] = useState<StudentUser | null>(null);
+  const [isSessionLoading, setIsSessionLoading] = useState<boolean>(true);
+  const [connectionError, setConnectionError] = useState<string | null>(null);
 
-  const handleLoginSuccess = (user: StudentUser) => {
-    setCurrentUser(user);
+  // Validate session against GET /api/auth/me on startup & retry
+  const validateSession = async () => {
+    setIsSessionLoading(true);
+    setConnectionError(null);
     try {
-      localStorage.setItem('codemyway_student_user', JSON.stringify(user));
-    } catch {
-      // ignore
+      const res = await api<{ authenticated: boolean; user: any }>('/auth/me');
+      if (res.authenticated && res.user) {
+        const mappedUser = toStudentUser(res.user);
+        setCurrentUser(mappedUser);
+
+        // Role-based route redirect
+        if (mappedUser.role === 'INSTRUCTOR' || mappedUser.role === 'MENTOR' || mappedUser.role === 'ADMIN') {
+          setCurrentRoute((prev) => (prev === 'student-dashboard' || prev === 'login' ? 'faculty-reviews' : prev));
+        } else if (mappedUser.role === 'STUDENT') {
+          setCurrentRoute((prev) => (prev === 'faculty-reviews' ? 'student-dashboard' : prev));
+        }
+      } else {
+        setCurrentUser(null);
+        setCurrentRoute((prev) => (prev === 'student-dashboard' || prev === 'faculty-reviews' ? 'login' : prev));
+      }
+    } catch (err: any) {
+      // If 401, it is an invalid/expired session
+      if (err.message && (err.message.includes('401') || err.message.toLowerCase().includes('unauthorized'))) {
+        setCurrentUser(null);
+        setCurrentRoute((prev) => (prev === 'student-dashboard' || prev === 'faculty-reviews' ? 'login' : prev));
+      } else {
+        // Backend unavailable or network connectivity error
+        setConnectionError(err.message || 'Unable to connect to CodeMyWay auth server. Please check your network or ensure backend is running.');
+      }
+    } finally {
+      setIsSessionLoading(false);
     }
   };
 
-  const handleLogout = () => {
-    setCurrentUser(null);
-    try {
-      localStorage.removeItem('codemyway_student_user');
-    } catch {
-      // ignore
+  useEffect(() => {
+    validateSession();
+  }, []);
+
+  const handleLoginSuccess = (user: StudentUser) => {
+    setCurrentUser(user);
+    if (user.role === 'INSTRUCTOR' || user.role === 'MENTOR' || user.role === 'ADMIN') {
+      setCurrentRoute('faculty-reviews');
+    } else {
+      setCurrentRoute('student-dashboard');
     }
-    handleRouteChange('login');
+  };
+
+  const handleLogout = async () => {
+    try {
+      await api('/auth/logout', { method: 'POST' });
+    } catch (err) {
+      console.error('Logout error:', err);
+    } finally {
+      setCurrentUser(null);
+      handleRouteChange('login');
+    }
   };
 
   // Global modals
@@ -126,8 +162,13 @@ export default function App() {
     return () => clearTimeout(timer);
   }, []);
 
-  // Handle route change with browser history update
+  // Handle route change with browser history update & student route protection
   const handleRouteChange = (route: NavigationRoute) => {
+    // Student route protection: If trying to access student dashboard while not an authenticated STUDENT
+    if (route === 'student-dashboard' && (!currentUser?.isLoggedIn || currentUser.role !== 'STUDENT')) {
+      route = 'login';
+    }
+
     setCurrentRoute(route);
     let targetPath = '/';
     if (route === 'course-details') targetPath = '/courses/data-analyst-genai';
@@ -175,65 +216,125 @@ export default function App() {
 
       {/* Main Page Area */}
       <main className="flex-1">
-        {currentRoute === 'home' && (
-          <HomePage
-            onRouteChange={handleRouteChange}
-            onOpenBrochure={() => {
-              setBrochureTitle('Data Analyst + GenAI');
-              setIsBrochureOpen(true);
-            }}
-            onOpenMentorModal={() => setIsMentorModalOpen(true)}
-          />
-        )}
+        {/* Connection Error Screen with Retry */}
+        {connectionError ? (
+          <div className="min-h-[70vh] flex items-center justify-center p-6">
+            <div className="max-w-md w-full bg-[#110D1F] border border-rose-500/30 rounded-2xl p-6 sm:p-8 text-center shadow-2xl shadow-rose-950/20">
+              <div className="w-14 h-14 mx-auto mb-4 rounded-full bg-rose-500/10 border border-rose-500/20 flex items-center justify-center text-rose-400">
+                <svg className="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
+              </div>
+              <h2 className="text-xl font-bold text-white mb-2">Authentication Service Unavailable</h2>
+              <p className="text-xs sm:text-sm text-[#94A3B8] mb-6">
+                {connectionError}
+              </p>
+              <button
+                onClick={() => validateSession()}
+                className="w-full py-2.5 px-4 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-semibold text-xs sm:text-sm shadow-lg shadow-purple-900/30 transition-all cursor-pointer flex items-center justify-center gap-2"
+              >
+                <span>Retry Connection</span>
+              </button>
+            </div>
+          </div>
+        ) : isSessionLoading ? (
+          /* Session Validation Loading Screen */
+          <div className="min-h-[70vh] flex flex-col items-center justify-center gap-4">
+            <div className="relative w-12 h-12">
+              <div className="w-12 h-12 rounded-full border-2 border-purple-500/20 border-t-purple-400 animate-spin" />
+              <div className="absolute inset-0 flex items-center justify-center">
+                <span className="w-2 h-2 rounded-full bg-purple-400 animate-ping" />
+              </div>
+            </div>
+            <p className="text-xs text-[#94A3B8] font-mono tracking-wider animate-pulse">
+              Verifying CodeMyWay Session...
+            </p>
+          </div>
+        ) : (
+          <>
+            {currentRoute === 'home' && (
+              <HomePage
+                onRouteChange={handleRouteChange}
+                onOpenBrochure={() => {
+                  setBrochureTitle('Data Analyst + GenAI');
+                  setIsBrochureOpen(true);
+                }}
+                onOpenMentorModal={() => setIsMentorModalOpen(true)}
+              />
+            )}
 
-        {currentRoute === 'course-details' && (
-          <CourseDetailsPage
-            onRouteChange={handleRouteChange}
-            onOpenBrochure={(title) => {
-              setBrochureTitle(title || 'Data Analyst + GenAI');
-              setIsBrochureOpen(true);
-            }}
-            onOpenMentorModal={() => setIsMentorModalOpen(true)}
-            onOpenBuyNowModal={(details) => {
-              if (details) {
-                setCheckoutData(details);
-              }
-              setIsBuyNowOpen(true);
-            }}
-          />
-        )}
+            {currentRoute === 'course-details' && (
+              <CourseDetailsPage
+                onRouteChange={handleRouteChange}
+                onOpenBrochure={(title) => {
+                  setBrochureTitle(title || 'Data Analyst + GenAI');
+                  setIsBrochureOpen(true);
+                }}
+                onOpenMentorModal={() => setIsMentorModalOpen(true)}
+                onOpenBuyNowModal={(details) => {
+                  if (details) {
+                    setCheckoutData(details);
+                  }
+                  setIsBuyNowOpen(true);
+                }}
+              />
+            )}
 
-        {currentRoute === 'skill-store' && (
-          <SkillStorePage
-            onRouteChange={handleRouteChange}
-            onOpenNotifyModal={(title, isPrebooking) => {
-              setNotifyModalData({ open: true, title, isPrebooking });
-            }}
-            onOpenEnrollModal={(title) => {
-              setBrochureTitle(title);
-              setIsBrochureOpen(true);
-            }}
-          />
-        )}
+            {currentRoute === 'skill-store' && (
+              <SkillStorePage
+                onRouteChange={handleRouteChange}
+                onOpenNotifyModal={(title, isPrebooking) => {
+                  setNotifyModalData({ open: true, title, isPrebooking });
+                }}
+                onOpenEnrollModal={(title) => {
+                  setBrochureTitle(title);
+                  setIsBrochureOpen(true);
+                }}
+              />
+            )}
 
-        {currentRoute === 'login' && (
-          <AuthPage
-            onRouteChange={handleRouteChange}
-            onLoginSuccess={handleLoginSuccess}
-          />
-        )}
+            {currentRoute === 'login' && (
+              <AuthPage
+                onRouteChange={handleRouteChange}
+                onLoginSuccess={handleLoginSuccess}
+              />
+            )}
 
-        {currentRoute === 'student-dashboard' && (
-          <StudentDashboardPage
-            onRouteChange={handleRouteChange}
-            currentUser={currentUser}
-            onLogout={handleLogout}
-          />
+            {currentRoute === 'student-dashboard' && (
+              currentUser?.isLoggedIn && currentUser.role === 'STUDENT' ? (
+                <StudentDashboardPage
+                  onRouteChange={handleRouteChange}
+                  currentUser={currentUser}
+                  onLogout={handleLogout}
+                />
+              ) : (
+                <AuthPage
+                  onRouteChange={handleRouteChange}
+                  onLoginSuccess={handleLoginSuccess}
+                />
+              )
+            )}
+
+            {currentRoute === 'faculty-reviews' && (
+              currentUser?.isLoggedIn && (currentUser.role === 'INSTRUCTOR' || currentUser.role === 'MENTOR' || currentUser.role === 'ADMIN') ? (
+                <FacultyReviewView
+                  currentUser={currentUser}
+                  onLogout={handleLogout}
+                  onNavigateHome={() => handleRouteChange('home')}
+                />
+              ) : (
+                <AuthPage
+                  onRouteChange={handleRouteChange}
+                  onLoginSuccess={handleLoginSuccess}
+                />
+              )
+            )}
+          </>
         )}
       </main>
 
       {/* Footer - Only on public website pages */}
-      {currentRoute !== 'student-dashboard' && currentRoute !== 'login' && (
+      {currentRoute !== 'student-dashboard' && currentRoute !== 'login' && currentRoute !== 'faculty-reviews' && (
         <Footer
           onRouteChange={handleRouteChange}
           onOpenBrochure={() => {

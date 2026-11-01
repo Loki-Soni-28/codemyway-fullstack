@@ -1,0 +1,6 @@
+{
+  "name": "CodeMyWay — Technology Education & Career Platform",
+  "description": "Interactive prototype of CodeMyWay featuring the Data Analyst + GenAI flagship program, Skill Store micro-course catalog, and personal Student Dashboard.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

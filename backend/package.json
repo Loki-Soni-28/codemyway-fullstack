@@ -1,0 +1,34 @@
+{
+  "name": "codemyway-backend",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev -p 4000",
+    "build": "prisma generate && next build",
+    "start": "next start -p 4000",
+    "db:migrate": "prisma migrate deploy",
+    "db:seed": "prisma db seed",
+    "db:setup": "prisma generate && prisma migrate deploy && prisma db seed"
+  },
+  "prisma": {
+    "seed": "tsx prisma/seed.ts"
+  },
+  "dependencies": {
+    "@google-cloud/bigquery": "^9.0.3",
+    "@prisma/client": "6.3.0",
+    "bcryptjs": "^3.0.3",
+    "codemyway-fullstack": "file:..",
+    "jose": "^6.2.10",
+    "next": "16.3.3",
+    "react": "19.2.8",
+    "react-dom": "19.2.8"
+  },
+  "devDependencies": {
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "prisma": "6.3.0",
+    "tsx": "^4.23.12",
+    "typescript": "^5"
+  }
+}

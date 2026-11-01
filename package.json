@@ -1,0 +1,17 @@
+{
+  "name": "codemyway-fullstack",
+  "private": true,
+  "scripts": {
+    "install:all": "npm install && npm install --prefix frontend && npm install --prefix backend",
+    "db:up": "docker compose up -d db",
+    "db:setup": "npm run db:setup --prefix backend",
+    "dev": "concurrently -n backend,frontend -c blue,green \"npm run dev --prefix backend\" \"npm run dev --prefix frontend\"",
+    "build": "npm run build --prefix backend && npm run build --prefix frontend"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.0"
+  },
+  "engines": {
+    "node": ">=20.19.0"
+  }
+}

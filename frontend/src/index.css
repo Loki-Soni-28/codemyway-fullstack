@@ -1,0 +1,169 @@
+@import "tailwindcss";
+
+@layer base {
+  :root {
+    --bg-main: #08070B;
+    --bg-secondary: #000000;
+    --surface-card: #2E1A47;
+    --border-violet: #5C4B8A;
+    --accent-violet: #9B59B6;
+    --cta-gold: #F1C40F;
+    --text-primary: #FFFFFF;
+    --text-secondary: #D1CADB;
+    --text-muted: #A7A0B5;
+
+    --font-heading: 'Sora', sans-serif;
+    --font-body: 'Inter', system-ui, -apple-system, sans-serif;
+    --font-mono: 'JetBrains Mono', monospace;
+  }
+
+  body {
+    font-family: var(--font-body);
+    color: var(--text-primary);
+    background-color: var(--bg-main);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-heading);
+  }
+}
+
+/* Custom dark violet scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #08070B;
+}
+::-webkit-scrollbar-thumb {
+  background: #5C4B8A;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #9B59B6;
+}
+
+/* Cool Hero & Skill Store Custom Animations */
+@keyframes floatSlow {
+  0%, 100% {
+    transform: translateY(0px) rotate(0deg);
+  }
+  50% {
+    transform: translateY(-10px) rotate(1deg);
+  }
+}
+
+@keyframes floatReverse {
+  0%, 100% {
+    transform: translateY(0px) rotate(0deg);
+  }
+  50% {
+    transform: translateY(8px) rotate(-1deg);
+  }
+}
+
+@keyframes pulseGlow {
+  0%, 100% {
+    opacity: 0.3;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.65;
+    transform: scale(1.1);
+  }
+}
+
+@keyframes textShimmer {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+@keyframes rotateConic {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes laserSweep {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+@keyframes radarWave {
+  0% {
+    transform: scale(0.85);
+    opacity: 0.7;
+  }
+  50% {
+    opacity: 0.35;
+  }
+  100% {
+    transform: scale(1.6);
+    opacity: 0;
+  }
+}
+
+.animate-float-slow {
+  animation: floatSlow 6s ease-in-out infinite;
+}
+
+.animate-float-reverse {
+  animation: floatReverse 7s ease-in-out infinite;
+}
+
+.animate-pulse-glow {
+  animation: pulseGlow 5s ease-in-out infinite;
+}
+
+.animate-text-shimmer {
+  background-size: 200% auto;
+  animation: textShimmer 4s ease-in-out infinite;
+}
+
+.animate-rotate-conic {
+  animation: rotateConic 9s linear infinite;
+}
+
+.animate-laser-sweep {
+  animation: laserSweep 3.5s ease-in-out infinite;
+}
+
+.animate-radar-wave {
+  animation: radarWave 4s cubic-bezier(0.2, 0.8, 0.2, 1) infinite;
+}
+
+@keyframes waveHand {
+  0% { transform: rotate(0deg); }
+  10% { transform: rotate(16deg); }
+  20% { transform: rotate(-8deg); }
+  30% { transform: rotate(16deg); }
+  40% { transform: rotate(-4deg); }
+  50% { transform: rotate(10deg); }
+  60% { transform: rotate(0deg); }
+  100% { transform: rotate(0deg); }
+}
+
+.animate-wave {
+  animation: waveHand 2.5s infinite;
+  transform-origin: 70% 70%;
+  display: inline-block;
+}
+
+
+

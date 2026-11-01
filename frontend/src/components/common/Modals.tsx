@@ -1,9 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { X, CheckCircle, ArrowRight, ShieldCheck, Download, Calendar, Mail, Phone, User, Sparkles } from 'lucide-react';
 import { PROGRAM_INFO } from '../../data/mockData';
 import { api } from '../../api';
+import { downloadBrochure } from '../../brochure';
 
-type LeadSource = 'BROCHURE' | 'TALK_TO_MENTOR' | 'APPLY';
+type LeadSource = 'BROCHURE' | 'TALK_TO_MENTOR' | 'APPLY' | 'NOTIFY';
 
 const submitLead = (source: LeadSource, name: string, email: string, phone: string, details?: Record<string, string>) =>
   api('/public/leads', { method: 'POST', body: JSON.stringify({ source, name, email, phone, details }) });
@@ -33,6 +34,7 @@ export const BrochureModal: React.FC<BrochureModalProps> = ({ isOpen, onClose, p
     try {
       await submitLead('BROCHURE', formData.name, formData.email, formData.mobile, { background: formData.background, program: programTitle });
       setStep('success');
+      await downloadBrochure(programTitle);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Something went wrong. Please try again.');
     } finally {
@@ -42,7 +44,7 @@ export const BrochureModal: React.FC<BrochureModalProps> = ({ isOpen, onClose, p
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
-      <div className="bg-[#170F28] rounded-2xl max-w-md w-full p-6 shadow-[0_0_50px_rgba(46,26,71,0.8)] border border-[#5C4B8A] relative overflow-hidden animate-in fade-in zoom-in-95 duration-150 text-white">
+      <div className="bg-[#170F28] rounded-2xl max-w-md w-full p-6 border border-[#5C4B8A] relative overflow-hidden animate-in fade-in zoom-in-95 duration-150 text-white">
         <button 
           onClick={onClose}
           className="absolute top-4 right-4 p-1.5 text-[#A7A0B5] hover:text-white rounded-lg hover:bg-[#2E1A47] transition-colors cursor-pointer"
@@ -121,14 +123,6 @@ export const BrochureModal: React.FC<BrochureModalProps> = ({ isOpen, onClose, p
                 </select>
               </div>
 
-              {/* Transparent prototype note */}
-              <div className="p-2.5 rounded-lg bg-[#2E1A47]/40 border border-[#5C4B8A]/50 text-[11px] text-[#D1CADB] flex items-start gap-2">
-                <ShieldCheck className="w-4 h-4 text-[#9B59B6] shrink-0 mt-0.5" />
-                <span>
-                  <strong className="text-white">Prototype Note:</strong> In production, an instant SMS OTP is verified. In this prototype, clicking download provides immediate preview access.
-                </span>
-              </div>
-
               <LeadError message={error} />
               <button
                 type="submit"
@@ -136,7 +130,7 @@ export const BrochureModal: React.FC<BrochureModalProps> = ({ isOpen, onClose, p
                 className="w-full py-2.5 px-4 text-sm font-bold text-[#08070B] bg-[#F1C40F] hover:bg-[#F39C12] rounded-lg shadow-[0_0_15px_rgba(241,196,15,0.25)] transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
               >
                 <Download className="w-4 h-4" />
-                {sending ? 'Sending...' : 'Download Brochure PDF'}
+                {sending ? 'Preparing...' : 'Download Brochure PDF'}
               </button>
             </form>
           </div>
@@ -146,17 +140,25 @@ export const BrochureModal: React.FC<BrochureModalProps> = ({ isOpen, onClose, p
               <CheckCircle className="w-7 h-7" />
             </div>
             <div>
-              <h4 className="text-lg font-bold text-white font-['Sora']">Brochure Sent Successfully!</h4>
+              <h4 className="text-lg font-bold text-white font-['Sora']">Your Brochure Is Downloading</h4>
               <p className="text-xs text-[#D1CADB] mt-1 max-w-xs mx-auto">
-                We have generated your personalized curriculum package for <span className="font-semibold text-white">{formData.name}</span>.
+                Thanks, <span className="font-semibold text-white">{formData.name}</span>. The PDF should start downloading now. If it didn't, use the button below.
               </p>
             </div>
             <div className="p-3 bg-[#2E1A47]/50 border border-[#5C4B8A]/50 rounded-xl text-left text-xs text-[#D1CADB] space-y-1">
-              <div className="font-semibold text-white">Included in package:</div>
-              <div>• 24-Week detailed syllabus breakdown</div>
-              <div>• 4-Teacher mentoring model schedule</div>
-              <div>• Major project rubric templates</div>
+              <div className="font-semibold text-white">Inside the PDF:</div>
+              <div>• Program overview, duration and level</div>
+              <div>• Phase-by-phase syllabus</div>
+              <div>• Capstone projects and mentorship perks</div>
             </div>
+            <button
+              onClick={() => downloadBrochure(programTitle).catch(() => setError('Could not create the PDF. Please try again.'))}
+              className="w-full py-2.5 px-4 text-sm font-bold text-[#08070B] bg-[#F1C40F] hover:bg-[#F39C12] rounded-lg transition-colors flex items-center justify-center gap-2 cursor-pointer"
+            >
+              <Download className="w-4 h-4" />
+              Download Brochure PDF
+            </button>
+            <LeadError message={error} />
             <div className="flex gap-2">
               <button
                 onClick={() => {
@@ -211,7 +213,7 @@ export const TalkToMentorModal: React.FC<TalkToMentorModalProps> = ({ isOpen, on
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
-      <div className="bg-[#170F28] rounded-2xl max-w-md w-full p-6 shadow-[0_0_50px_rgba(46,26,71,0.8)] border border-[#5C4B8A] relative overflow-hidden text-white">
+      <div className="bg-[#170F28] rounded-2xl max-w-md w-full p-6 border border-[#5C4B8A] relative overflow-hidden text-white">
         <button 
           onClick={onClose}
           className="absolute top-4 right-4 p-1.5 text-[#A7A0B5] hover:text-white rounded-lg hover:bg-[#2E1A47] transition-colors cursor-pointer"
@@ -336,40 +338,130 @@ export const TalkToMentorModal: React.FC<TalkToMentorModalProps> = ({ isOpen, on
   );
 };
 
+interface RazorpaySuccess {
+  razorpay_order_id: string;
+  razorpay_payment_id: string;
+  razorpay_signature: string;
+}
+
+interface CreateOrderResponse {
+  keyId: string;
+  orderId: string;
+  amount: number;
+  currency: string;
+  courseTitle: string;
+  prefill: { name: string; email: string; contact: string };
+}
+
+const RAZORPAY_SRC = 'https://checkout.razorpay.com/v1/checkout.js';
+
+const loadRazorpay = () =>
+  new Promise<boolean>((resolve) => {
+    if ((window as any).Razorpay) return resolve(true);
+    const script = document.createElement('script');
+    script.src = RAZORPAY_SRC;
+    script.onload = () => resolve(true);
+    script.onerror = () => resolve(false);
+    document.body.appendChild(script);
+  });
+
+const formatInr = (rupees: number) => `₹${rupees.toLocaleString('en-IN')}`;
+
 interface BuyNowCheckoutModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSuccessDemo?: () => void;
+  onPaid: () => void;
+  onLoginRequired: () => void;
+  courseSlug: string;
   programTitle?: string;
-  originalPrice?: string;
-  salePrice?: string;
-  discountText?: string;
 }
 
-export const BuyNowCheckoutModal: React.FC<BuyNowCheckoutModalProps> = ({ 
-  isOpen, 
-  onClose, 
-  onSuccessDemo,
+export const BuyNowCheckoutModal: React.FC<BuyNowCheckoutModalProps> = ({
+  isOpen,
+  onClose,
+  onPaid,
+  onLoginRequired,
+  courseSlug,
   programTitle = 'Data Analyst + GenAI',
-  originalPrice = '₹36,000',
-  salePrice = '₹24,999',
-  discountText = '30% OFF · Active'
 }) => {
   const [step, setStep] = useState<'checkout' | 'completed'>('checkout');
-  const [paymentMethod, setPaymentMethod] = useState<'upi' | 'card' | 'netbanking'>('upi');
+  const [paying, setPaying] = useState(false);
+  const [error, setError] = useState('');
+  // What this student pays comes from the server, including any early-bird discount they claimed.
+  const [quote, setQuote] = useState<{ price: number; priceOriginal: number | null; discountPercent: number; finalPrice: number } | null>(null);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    setStep('checkout');
+    setError('');
+    setQuote(null);
+    api<NonNullable<typeof quote>>(`/payments/quote?courseSlug=${encodeURIComponent(courseSlug)}`)
+      .then(setQuote)
+      .catch((err) => {
+        const message = err instanceof Error ? err.message : '';
+        if (message.toLowerCase().includes('log in')) onLoginRequired();
+        else setError(message || 'Could not load pricing. Please try again.');
+      });
+  }, [isOpen, courseSlug]);
 
   if (!isOpen) return null;
 
-  const handlePay = () => {
-    setStep('completed');
-    if (onSuccessDemo) onSuccessDemo();
+  const handlePay = async () => {
+    if (paying) return;
+    setPaying(true);
+    setError('');
+    try {
+      const [order, loaded] = await Promise.all([
+        api<CreateOrderResponse>('/payments/create-order', {
+          method: 'POST',
+          body: JSON.stringify({ courseSlug }),
+        }),
+        loadRazorpay(),
+      ]);
+      if (!loaded) throw new Error('Could not load the payment window. Check your connection and try again.');
+
+      const checkout = new (window as any).Razorpay({
+        key: order.keyId,
+        order_id: order.orderId,
+        amount: order.amount,
+        currency: order.currency,
+        name: 'CodeMyWay',
+        description: order.courseTitle,
+        prefill: order.prefill,
+        theme: { color: '#9B59B6' },
+        handler: async (response: RazorpaySuccess) => {
+          try {
+            await api('/payments/verify', { method: 'POST', body: JSON.stringify(response) });
+            setStep('completed');
+          } catch (err) {
+            setError(err instanceof Error ? err.message : 'Could not confirm your payment.');
+          } finally {
+            setPaying(false);
+          }
+        },
+        modal: { ondismiss: () => setPaying(false) },
+      });
+      checkout.on('payment.failed', (res: { error?: { description?: string } }) => {
+        setError(res.error?.description || 'Payment failed. Please try again.');
+        setPaying(false);
+      });
+      checkout.open();
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Something went wrong. Please try again.';
+      setPaying(false);
+      if (message.toLowerCase().includes('log in')) {
+        onLoginRequired();
+      } else {
+        setError(message);
+      }
+    }
   };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
-      <div className="bg-[#170F28] rounded-2xl max-w-lg w-full p-6 shadow-[0_0_60px_rgba(46,26,71,0.9)] border border-[#5C4B8A] relative overflow-hidden animate-in fade-in zoom-in-95 duration-150 text-white">
-        <button 
-          onClick={onClose}
+      <div className="bg-[#170F28] rounded-2xl max-w-lg w-full p-6 border border-[#5C4B8A] relative overflow-hidden animate-in fade-in zoom-in-95 duration-150 text-white">
+        <button
+          onClick={step === 'completed' ? onPaid : onClose}
           className="absolute top-4 right-4 p-1.5 text-[#A7A0B5] hover:text-white rounded-lg hover:bg-[#2E1A47] transition-colors cursor-pointer"
           aria-label="Close dialog"
         >
@@ -380,29 +472,42 @@ export const BuyNowCheckoutModal: React.FC<BuyNowCheckoutModalProps> = ({
           <div>
             <div className="mb-4">
               <div className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#9B59B6] uppercase tracking-wider mb-1">
-                <span>Prototype Checkout</span>
-                <span className="text-[#A7A0B5]">·</span>
-                <span className="text-[#F1C40F] font-normal">Simulation Mode</span>
+                <span>Secure Checkout</span>
               </div>
               <h3 className="text-xl font-bold text-white font-['Sora']">Enroll in {programTitle}</h3>
               <p className="text-xs text-[#D1CADB] mt-0.5">
-                Review your pricing structure, fee transparency, and prototype enrollment.
+                Review your pricing and fee transparency, then pay securely with UPI, card or netbanking.
               </p>
             </div>
 
             {/* Price breakdown */}
-            <div className="p-4 bg-[#2E1A47]/40 rounded-xl border border-[#9B59B6]/45 shadow-[0_0_20px_rgba(155,89,182,0.18)] space-y-2 mb-4">
-              <div className="flex justify-between text-xs text-[#D1CADB]">
-                <span>Standard Program Tuition</span>
-                <span className="line-through text-[#A7A0B5] font-mono">{originalPrice}</span>
-              </div>
-              <div className="flex justify-between text-sm font-semibold text-white">
-                <span className="flex items-center gap-1.5">
-                  Early-Bird Enrolled Price
-                  <span className="text-[10px] font-bold text-emerald-400 bg-emerald-950/60 border border-emerald-800/60 px-1.5 py-0.5 rounded">{discountText}</span>
-                </span>
-                <span className="text-[#F1C40F] font-mono text-base font-bold">{salePrice}</span>
-              </div>
+            <div className="p-4 bg-[#2E1A47]/40 rounded-xl border border-[#5C4B8A]/60 space-y-2 mb-4">
+              {quote ? (
+                <>
+                  {quote.priceOriginal && (
+                    <div className="flex justify-between text-xs text-[#D1CADB]">
+                      <span>Standard Program Tuition</span>
+                      <span className="line-through text-[#A7A0B5] font-mono">{formatInr(quote.priceOriginal)}</span>
+                    </div>
+                  )}
+                  <div className="flex justify-between text-xs text-[#D1CADB]">
+                    <span>Program Fee</span>
+                    <span className="font-mono">{formatInr(quote.price)}</span>
+                  </div>
+                  {quote.discountPercent > 0 && (
+                    <div className="flex justify-between text-xs text-emerald-400">
+                      <span>Early-bird discount ({quote.discountPercent}%)</span>
+                      <span className="font-mono">−{formatInr(quote.price - quote.finalPrice)}</span>
+                    </div>
+                  )}
+                  <div className="flex justify-between text-sm font-semibold text-white border-t border-[#5C4B8A]/40 pt-2">
+                    <span>Total payable</span>
+                    <span className="text-[#F1C40F] font-mono text-base font-bold">{formatInr(quote.finalPrice)}</span>
+                  </div>
+                </>
+              ) : (
+                <div className="text-xs text-[#D1CADB]">Loading price...</div>
+              )}
               <div className="border-t border-[#5C4B8A]/40 pt-2 flex justify-between text-xs text-[#A7A0B5]">
                 <span className="max-w-[240px]">Registration Fee (Separate additional fee)</span>
                 <span className="italic text-[#D1CADB] text-right">To be confirmed</span>
@@ -412,51 +517,15 @@ export const BuyNowCheckoutModal: React.FC<BuyNowCheckoutModalProps> = ({
               </div>
             </div>
 
-            {/* Simulated Payment Selector */}
-            <div className="space-y-2 mb-4">
-              <label className="block text-xs font-semibold text-[#D1CADB]">Simulate Payment Method</label>
-              <div className="grid grid-cols-3 gap-2">
-                <button
-                  type="button"
-                  onClick={() => setPaymentMethod('upi')}
-                  className={`p-2.5 rounded-lg border text-xs font-medium text-center transition-all cursor-pointer ${
-                    paymentMethod === 'upi'
-                      ? 'border-[#9B59B6] bg-[#2E1A47] text-white font-semibold shadow-[0_0_10px_rgba(155,89,182,0.3)]'
-                      : 'border-[#5C4B8A]/40 bg-[#0C0717] text-[#D1CADB] hover:border-[#5C4B8A]'
-                  }`}
-                >
-                  UPI (QR / ID)
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setPaymentMethod('card')}
-                  className={`p-2.5 rounded-lg border text-xs font-medium text-center transition-all cursor-pointer ${
-                    paymentMethod === 'card'
-                      ? 'border-[#9B59B6] bg-[#2E1A47] text-white font-semibold shadow-[0_0_10px_rgba(155,89,182,0.3)]'
-                      : 'border-[#5C4B8A]/40 bg-[#0C0717] text-[#D1CADB] hover:border-[#5C4B8A]'
-                  }`}
-                >
-                  Card / EMI
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setPaymentMethod('netbanking')}
-                  className={`p-2.5 rounded-lg border text-xs font-medium text-center transition-all cursor-pointer ${
-                    paymentMethod === 'netbanking'
-                      ? 'border-[#9B59B6] bg-[#2E1A47] text-white font-semibold shadow-[0_0_10px_rgba(155,89,182,0.3)]'
-                      : 'border-[#5C4B8A]/40 bg-[#0C0717] text-[#D1CADB] hover:border-[#5C4B8A]'
-                  }`}
-                >
-                  NetBanking
-                </button>
-              </div>
-            </div>
-
             <div className="p-2.5 bg-[#2E1A47]/40 rounded-lg border border-[#F1C40F]/30 text-[11px] text-[#D1CADB] mb-4 flex items-start gap-2">
               <ShieldCheck className="w-4 h-4 text-[#F1C40F] shrink-0 mt-0.5" />
               <span>
-                <strong className="text-white">Prototype Notice:</strong> This is a design prototype. Clicking Confirm will NOT deduct actual funds; it simulates onboarding and unlocks your demo student dashboard.
+                <strong className="text-white">Secure payment:</strong> Payments are processed by Razorpay. We never see or store your card, UPI or bank details.
               </span>
+            </div>
+
+            <div className="mb-3">
+              <LeadError message={error} />
             </div>
 
             <div className="flex gap-2">
@@ -470,9 +539,10 @@ export const BuyNowCheckoutModal: React.FC<BuyNowCheckoutModalProps> = ({
               <button
                 type="button"
                 onClick={handlePay}
-                className="flex-1 py-2.5 px-4 text-sm font-bold text-[#08070B] bg-[#F1C40F] hover:bg-[#F39C12] rounded-lg shadow-[0_0_15px_rgba(241,196,15,0.25)] transition-all flex items-center justify-center gap-2 cursor-pointer"
+                disabled={paying || !quote}
+                className="flex-1 py-2.5 px-4 text-sm font-bold text-[#08070B] bg-[#F1C40F] hover:bg-[#F39C12] rounded-lg shadow-[0_0_15px_rgba(241,196,15,0.25)] transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
               >
-                <span>Confirm Enrollment (Simulated)</span>
+                <span>{paying ? 'Processing...' : quote ? `Pay ${formatInr(quote.finalPrice)}` : 'Pay'}</span>
                 <ArrowRight className="w-4 h-4" />
               </button>
             </div>
@@ -483,18 +553,13 @@ export const BuyNowCheckoutModal: React.FC<BuyNowCheckoutModalProps> = ({
               <CheckCircle className="w-8 h-8" />
             </div>
             <div>
-              <h4 className="text-xl font-bold text-white font-['Sora']">Prototype Enrollment Confirmed!</h4>
+              <h4 className="text-xl font-bold text-white font-['Sora']">Payment Successful!</h4>
               <p className="text-xs text-[#D1CADB] mt-1 max-w-sm mx-auto">
-                Welcome to CodeMyWay! You are now provisioned in the prototype student dashboard with enrolled access to Data Analyst + GenAI.
+                Welcome to CodeMyWay! You are now enrolled in {programTitle}.
               </p>
             </div>
-            <div className="p-3 bg-[#2E1A47]/50 border border-[#5C4B8A]/60 rounded-xl text-left text-xs text-[#D1CADB] space-y-1">
-              <div>• Roll ID: <span className="font-mono text-[#F1C40F] font-bold">CMW-2026-DA42</span></div>
-              <div>• Assigned Phase: <span className="font-medium text-white">Phase 1 Foundations</span></div>
-              <div>• Free 1:1 Mentorship Quota: <span className="font-medium text-[#9B59B6]">4 Sessions Active</span></div>
-            </div>
             <button
-              onClick={onClose}
+              onClick={onPaid}
               className="w-full py-2.5 px-4 text-sm font-bold text-[#08070B] bg-[#F1C40F] hover:bg-[#F39C12] rounded-lg transition-colors cursor-pointer"
             >
               Go to Student Dashboard
@@ -516,17 +581,29 @@ interface NotifyMeModalProps {
 export const NotifyMeModal: React.FC<NotifyMeModalProps> = ({ isOpen, onClose, courseTitle, isPrebooking = false }) => {
   const [formData, setFormData] = useState({ name: '', email: '', mobile: '' });
   const [submitted, setSubmitted] = useState(false);
+  const [sending, setSending] = useState(false);
+  const [error, setError] = useState('');
 
   if (!isOpen) return null;
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setSubmitted(true);
+    if (sending) return;
+    setSending(true);
+    setError('');
+    try {
+      await submitLead('NOTIFY', formData.name, formData.email, formData.mobile, { course: courseTitle, prebooking: String(isPrebooking) });
+      setSubmitted(true);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Something went wrong. Please try again.');
+    } finally {
+      setSending(false);
+    }
   };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
-      <div className="bg-[#170F28] rounded-2xl max-w-md w-full p-6 shadow-[0_0_50px_rgba(46,26,71,0.8)] border border-[#5C4B8A] relative overflow-hidden text-white">
+      <div className="bg-[#170F28] rounded-2xl max-w-md w-full p-6 border border-[#5C4B8A] relative overflow-hidden text-white">
         <button 
           onClick={onClose}
           className="absolute top-4 right-4 p-1.5 text-[#A7A0B5] hover:text-white rounded-lg hover:bg-[#2E1A47] transition-colors cursor-pointer"
@@ -590,12 +667,14 @@ export const NotifyMeModal: React.FC<NotifyMeModalProps> = ({ isOpen, onClose, c
                 <span>We respect your time. No spam; only verified cohort schedule releases and syllabus updates.</span>
               </div>
 
+              <LeadError message={error} />
               <button
                 type="submit"
-                className="w-full py-2.5 px-4 text-sm font-bold text-[#08070B] bg-[#F1C40F] hover:bg-[#F39C12] rounded-lg transition-colors flex items-center justify-center gap-2 cursor-pointer shadow-[0_0_15px_rgba(241,196,15,0.25)]"
+                disabled={sending}
+                className="w-full py-2.5 px-4 text-sm font-bold text-[#08070B] bg-[#F1C40F] hover:bg-[#F39C12] rounded-lg transition-colors flex items-center justify-center gap-2 cursor-pointer shadow-[0_0_15px_rgba(241,196,15,0.25)] disabled:opacity-60 disabled:cursor-not-allowed"
               >
                 <Sparkles className="w-4 h-4" />
-                {isPrebooking ? 'Pre-book My Spot' : 'Notify Me Upon Availability'}
+                {sending ? 'Sending...' : isPrebooking ? 'Pre-book My Spot' : 'Notify Me Upon Availability'}
               </button>
             </form>
           </div>

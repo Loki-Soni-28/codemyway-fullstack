@@ -1,13 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
-import { hashPassword, signJWT, MIN_PASSWORD_LENGTH, MAX_PASSWORD_BYTES } from '@/lib/auth';
+import { hashPassword, signJWT, MIN_PASSWORD_LENGTH, MAX_PASSWORD_BYTES, sessionCookieOptions } from '@/lib/auth';
 
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { email, password, name, phone, courseId } = body;
+    const { email, password, name, phone } = body;
 
-    if (!email || !password || !name || !courseId) {
+    if (!email || !password || !name) {
       return NextResponse.json({ error: 'Missing required registration fields' }, { status: 400 });
     }
 
@@ -38,30 +38,11 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    // Find a batch matching the courseId
-    const batch = await prisma.batch.findFirst({
-      where: { courseId },
-    });
-
-    // Assign a default mentor (e.g. Siddharth Mehta)
-    const mentor = await prisma.user.findFirst({
-      where: { role: 'MENTOR' },
-    });
-
-    await prisma.studentProfile.create({
-      data: {
-        userId: user.id,
-        courseId,
-        batchId: batch ? batch.id : null,
-        mentorId: mentor ? mentor.id : null,
-      },
-    });
-
-    // Automatically create a "Welcome to CODEDOJO" notification
+    // No enrolment here: students are enrolled only after a successful payment.
     await prisma.notification.create({
       data: {
         userId: user.id,
-        message: `Welcome to CODEDOJO, ${name}! Start exploring your dashboard and modules.`,
+        message: `Welcome to CodeMyWay, ${name}! Enrol in a program to unlock your dashboard.`,
         isRead: false,
       },
     });
@@ -79,13 +60,7 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    response.cookies.set('token', token, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      maxAge: 60 * 60 * 24, // 24 hours
-      path: '/',
-    });
+    response.cookies.set('token', token, sessionCookieOptions());
 
     return response;
   } catch (error: any) {

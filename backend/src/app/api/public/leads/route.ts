@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { clientIp, rateLimit } from '@/lib/rateLimit';
 
-const SOURCES = ['BROCHURE', 'TALK_TO_MENTOR', 'APPLY'];
+const SOURCES = ['BROCHURE', 'TALK_TO_MENTOR', 'APPLY', 'NOTIFY'];
 const LIMIT = 5;
 const WINDOW_MS = 10 * 60 * 1000;
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;

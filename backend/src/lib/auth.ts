@@ -51,11 +51,25 @@ export async function verifyPassword(
 // Used when no account matches, so unknown emails cost the same time as wrong passwords.
 export const DUMMY_PASSWORD_HASH = bcrypt.hashSync('not-a-real-password', BCRYPT_COST);
 
+// Students stay signed in until they log out. The cookie is re-issued whenever the app
+// checks the session (see /api/auth/me), so regular visitors never expire.
+export const SESSION_DAYS = 30;
+
+export function sessionCookieOptions() {
+  return {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'lax' as const,
+    maxAge: 60 * 60 * 24 * SESSION_DAYS,
+    path: '/',
+  };
+}
+
 export async function signJWT(payload: any) {
   return await new SignJWT(payload)
     .setProtectedHeader({ alg: 'HS256' })
     .setIssuedAt()
-    .setExpirationTime('24h')
+    .setExpirationTime(`${SESSION_DAYS}d`)
     .sign(getJwtSecret());
 }
 

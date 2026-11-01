@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
+import { api } from '../../api';
 import { NavigationRoute } from '../../types';
 import { 
   ArrowRight, 
@@ -60,7 +61,15 @@ interface ProgramSlide {
   phase2: CurriculumPhase;
 }
 
-const PROGRAM_SLIDES: ProgramSlide[] = [
+// Maps each slide to the course slug the backend sells (see prisma/seed.ts).
+const COURSE_SLUGS: Record<string, string> = {
+  'data-analyst-genai': 'data-analyst-with-gen-ai',
+  dsml: 'data-science-ml-gen-ai',
+};
+
+const formatInr = (rupees: number) => `₹${rupees.toLocaleString('en-IN')}`;
+
+export const PROGRAM_SLIDES: ProgramSlide[] = [
   {
     id: 'data-analyst-genai',
     shortTitle: 'Data Analyst + GenAI',
@@ -176,10 +185,8 @@ interface CourseDetailsPageProps {
   onOpenBrochure: (programTitle?: string) => void;
   onOpenMentorModal: (programTitle?: string) => void;
   onOpenBuyNowModal: (details?: {
+    courseSlug: string;
     title: string;
-    salePrice: string;
-    originalPrice: string;
-    discountText: string;
   }) => void;
 }
 
@@ -190,27 +197,55 @@ export const CourseDetailsPage: React.FC<CourseDetailsPageProps> = ({
   onOpenBuyNowModal
 }) => {
   const [activeSlideIndex, setActiveSlideIndex] = useState(0);
-  const currentSlide = PROGRAM_SLIDES[activeSlideIndex];
+  // Prices come from the backend so the page always matches what checkout charges.
+  const [prices, setPrices] = useState<Record<string, { price: number; priceOriginal: number | null }> | 'failed' | null>(null);
+
+  useEffect(() => {
+    api<{ courses: { slug: string; price: number; priceOriginal: number | null }[] }>('/public/courses')
+      .then(({ courses }) => setPrices(Object.fromEntries(courses.map((c) => [c.slug, c]))))
+      .catch(() => setPrices('failed'));
+  }, []);
+
+  const slides = useMemo(() => PROGRAM_SLIDES.map((slide) => {
+    const course = prices && prices !== 'failed' ? prices[COURSE_SLUGS[slide.id]] : undefined;
+    if (!course) {
+      const text = prices === 'failed' || prices ? '—' : '…';
+      return { ...slide, salePrice: text, originalPrice: '', discountBadge: '', saveAmountText: '', discountPercentText: '' };
+    }
+    const sale = formatInr(course.price);
+    if (!course.priceOriginal || course.priceOriginal <= course.price) {
+      return { ...slide, salePrice: sale, originalPrice: '', discountBadge: '', saveAmountText: '', discountPercentText: '' };
+    }
+    const percent = Math.round((1 - course.price / course.priceOriginal) * 100);
+    const save = `Save ${formatInr(course.priceOriginal - course.price)}`;
+    return {
+      ...slide,
+      salePrice: sale,
+      originalPrice: formatInr(course.priceOriginal),
+      discountBadge: `${percent}% OFF · ${save}`,
+      saveAmountText: save,
+      discountPercentText: `${percent}% OFF`,
+    };
+  }), [prices]);
+  const currentSlide = slides[activeSlideIndex];
 
   const handlePrevSlide = () => {
-    setActiveSlideIndex((prev) => (prev - 1 + PROGRAM_SLIDES.length) % PROGRAM_SLIDES.length);
+    setActiveSlideIndex((prev) => (prev - 1 + slides.length) % slides.length);
   };
 
   const handleNextSlide = () => {
-    setActiveSlideIndex((prev) => (prev + 1) % PROGRAM_SLIDES.length);
+    setActiveSlideIndex((prev) => (prev + 1) % slides.length);
   };
 
   const handleBuyNow = () => {
     onOpenBuyNowModal({
+      courseSlug: COURSE_SLUGS[currentSlide.id] ?? currentSlide.id,
       title: currentSlide.fullTitle,
-      salePrice: currentSlide.salePrice,
-      originalPrice: currentSlide.originalPrice,
-      discountText: `${currentSlide.discountPercentText} · Active`
     });
   };
 
   return (
-    <div className="space-y-16 pb-28 bg-[#08070B] text-white">
+    <div className="space-y-24 sm:space-y-28 pb-32 bg-[#08070B] text-white">
       
       {/* 1. HERO SECTION WITH FULL-SCREEN BACKGROUND & INTERACTIVE SLIDE CONTROLS */}
       <section className="relative w-full min-h-[calc(100vh-4rem)] flex items-center justify-center overflow-hidden py-12 sm:py-16">
@@ -228,14 +263,14 @@ export const CourseDetailsPage: React.FC<CourseDetailsPageProps> = ({
 
           {/* 🌟 BIG, PROMINENT MASTER COURSE SWITCHER BAR */}
           <div className="w-full max-w-4xl mx-auto mb-6">
-            <div className="inline-flex items-center gap-2 px-4 py-1 rounded-full bg-[#180E2B]/90 border border-[#9B59B6]/50 text-xs font-bold text-[#D8B4FE] shadow-[0_0_20px_rgba(155,89,182,0.3)] mb-3 backdrop-blur-md">
+            <div className="inline-flex items-center gap-2 px-4 py-1 rounded-full bg-[#180E2B]/90 border border-[#5C4B8A]/60 text-xs font-bold text-[#D8B4FE] mb-3 backdrop-blur-md">
               <Sparkles className="w-3.5 h-3.5 text-[#F1C40F] animate-pulse" />
               <span>Select Your Flagship Program</span>
               <Sparkles className="w-3.5 h-3.5 text-[#F1C40F] animate-pulse" />
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 p-2 rounded-2xl bg-[#0D071A]/95 border-2 border-[#5C4B8A]/60 shadow-[0_0_40px_rgba(155,89,182,0.35)] backdrop-blur-lg">
-              {PROGRAM_SLIDES.map((slide, idx) => {
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 p-2 rounded-2xl bg-[#0D071A]/95 border-2 border-[#5C4B8A]/60 backdrop-blur-lg">
+              {slides.map((slide, idx) => {
                 const isSelected = activeSlideIndex === idx;
                 return (
                   <button
@@ -244,7 +279,7 @@ export const CourseDetailsPage: React.FC<CourseDetailsPageProps> = ({
                     className={`relative flex items-center justify-between p-4 sm:p-5 rounded-xl transition-all duration-300 text-left cursor-pointer group ${
                       isSelected
                         ? 'bg-gradient-to-r from-[#2F154E] via-[#3B1F5E] to-[#24103B] border-2 border-[#C084FC] shadow-[0_0_35px_rgba(192,132,252,0.5)] scale-[1.01]'
-                        : 'bg-[#150D24]/90 hover:bg-[#1E1133] border border-[#5C4B8A]/45 hover:border-[#9B59B6]/70 opacity-75 hover:opacity-100'
+                        : 'bg-[#150D24]/90 hover:bg-[#1E1133] border border-[#5C4B8A]/45 hover:border-[#5C4B8A]/60 opacity-75 hover:opacity-100'
                     }`}
                   >
                     {/* Active Ribbon/Badge */}
@@ -294,7 +329,7 @@ export const CourseDetailsPage: React.FC<CourseDetailsPageProps> = ({
           </div>
           
           {/* Glassmorphic Centered Card for Hero Details */}
-          <div className="w-full max-w-4xl flex flex-col items-center justify-center p-6 sm:p-10 rounded-3xl bg-[#08070B]/70 backdrop-blur-[8px] border border-[#5C4B8A]/45 shadow-[0_0_60px_rgba(8,7,11,0.9)] relative transition-all duration-300">
+          <div className="w-full max-w-4xl flex flex-col items-center justify-center p-6 sm:p-10 rounded-2xl bg-[#08070B]/70 backdrop-blur-[8px] border border-[#5C4B8A]/45 shadow-[0_0_60px_rgba(8,7,11,0.9)] relative transition-all duration-300">
             
             {/* Slide Arrows & Status Indicator */}
             <div className="w-full flex items-center justify-between pb-4 mb-5 border-b border-[#5C4B8A]/35">
@@ -319,7 +354,7 @@ export const CourseDetailsPage: React.FC<CourseDetailsPageProps> = ({
                 <div className="text-xs font-mono text-[#D1CADB] px-1 font-semibold">
                   <span>0{activeSlideIndex + 1}</span>
                   <span className="text-[#5C4B8A] mx-1">/</span>
-                  <span className="text-[#A7A0B5]">0{PROGRAM_SLIDES.length}</span>
+                  <span className="text-[#A7A0B5]">0{slides.length}</span>
                 </div>
                 <button
                   onClick={handleNextSlide}
@@ -334,7 +369,7 @@ export const CourseDetailsPage: React.FC<CourseDetailsPageProps> = ({
             </div>
 
             {/* Glowing Level Badge */}
-            <div className="inline-flex items-center gap-2 px-4 py-1.5 bg-[#1B102B]/90 hover:bg-[#2E1A47] border border-[#9B59B6]/70 text-[#D1CADB] rounded-full text-xs font-semibold shadow-[0_0_25px_rgba(155,89,182,0.4)] backdrop-blur-md mb-6 transition-all">
+            <div className="inline-flex items-center gap-2 px-4 py-1.5 bg-[#1B102B]/90 hover:bg-[#2E1A47] border border-[#5C4B8A]/60 text-[#D1CADB] rounded-full text-xs font-semibold backdrop-blur-md mb-6 transition-all">
               <Sparkles className="w-3.5 h-3.5 text-[#F1C40F] animate-pulse" />
               <span className="text-white">{currentSlide.levelBadge}</span>
               <span className="text-[#5C4B8A]">·</span>
@@ -346,7 +381,7 @@ export const CourseDetailsPage: React.FC<CourseDetailsPageProps> = ({
               <span className="block text-xl sm:text-2xl md:text-3xl font-bold text-[#C084FC] mb-2 sm:mb-3 tracking-tight">
                 {currentSlide.kicker}
               </span>
-              <span className="block text-3xl sm:text-5xl lg:text-6xl font-extrabold leading-[1.12] bg-gradient-to-r from-white via-[#F5EDFD] to-[#D8B4FE] bg-clip-text text-transparent drop-shadow-[0_4px_35px_rgba(155,89,182,0.4)]">
+              <span className="block text-3xl sm:text-5xl lg:text-6xl font-extrabold leading-[1.12] bg-gradient-to-r from-white via-[#F5EDFD] to-[#D8B4FE] bg-clip-text text-transparent drop-">
                 {currentSlide.titleLine1}
               </span>
               <span className="block text-3xl sm:text-5xl lg:text-6xl font-extrabold leading-[1.12] bg-gradient-to-r from-[#F1C40F] via-[#F39C12] to-[#F1C40F] bg-clip-text text-transparent drop-shadow-[0_4px_30px_rgba(241,196,15,0.45)] mt-1 sm:mt-2">
@@ -360,7 +395,7 @@ export const CourseDetailsPage: React.FC<CourseDetailsPageProps> = ({
             </p>
 
             {/* Early Bird Pricing Pill / Banner */}
-            <div className="mb-8 inline-flex flex-wrap items-center justify-center gap-3 px-6 py-2.5 rounded-2xl bg-[#1E1133]/90 border border-[#9B59B6]/60 shadow-[0_0_25px_rgba(155,89,182,0.3)] backdrop-blur-md">
+            <div className="mb-8 inline-flex flex-wrap items-center justify-center gap-3 px-6 py-2.5 rounded-2xl bg-[#1E1133]/90 border border-[#5C4B8A]/60 backdrop-blur-md">
               <div className="flex items-center gap-1.5 text-xs text-[#A7A0B5]">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
                 <span>Early Bird Enrollment:</span>
@@ -388,7 +423,7 @@ export const CourseDetailsPage: React.FC<CourseDetailsPageProps> = ({
 
               <button
                 onClick={() => onOpenMentorModal(currentSlide.fullTitle)}
-                className="w-full sm:w-auto px-7 py-3.5 text-sm font-semibold text-white bg-[#190F29]/90 hover:bg-[#2E1A47] border border-[#5C4B8A] hover:border-[#9B59B6] rounded-xl backdrop-blur-md transition-all flex items-center justify-center gap-2 cursor-pointer shadow-[0_0_15px_rgba(92,75,138,0.25)] hover:scale-[1.02] active:scale-[0.98]"
+                className="w-full sm:w-auto px-7 py-3.5 text-sm font-semibold text-white bg-[#190F29]/90 hover:bg-[#2E1A47] border border-[#5C4B8A] hover:border-[#9B59B6] rounded-xl backdrop-blur-md transition-all flex items-center justify-center gap-2 cursor-pointer hover:scale-[1.02] active:scale-[0.98]"
               >
                 <MessageSquare className="w-4 h-4 text-[#9B59B6]" />
                 <span>Talk to a Mentor</span>
@@ -415,7 +450,7 @@ export const CourseDetailsPage: React.FC<CourseDetailsPageProps> = ({
 
             {/* Slide Pagination Dots */}
             <div className="mt-6 flex items-center justify-center gap-2">
-              {PROGRAM_SLIDES.map((_, idx) => (
+              {slides.map((_, idx) => (
                 <button
                   key={idx}
                   onClick={() => setActiveSlideIndex(idx)}
@@ -437,7 +472,7 @@ export const CourseDetailsPage: React.FC<CourseDetailsPageProps> = ({
       {/* 2. FLAGSHIP CURRICULUM: PHASE 1 & PHASE 2 (Dynamic per selected slide) */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center max-w-3xl mx-auto mb-6">
-          <span className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#1B102B] border border-[#9B59B6]/60 text-xs font-semibold text-[#9B59B6] shadow-[0_0_20px_rgba(155,89,182,0.25)] mb-3">
+          <span className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#1B102B] border border-[#5C4B8A]/60 text-xs font-semibold text-[#9B59B6] mb-3">
             <Sparkles className="w-3.5 h-3.5 text-[#F1C40F]" />
             <span className="text-white">Flagship Curriculum</span>
             <span className="text-[#5C4B8A]">·</span>
@@ -453,13 +488,13 @@ export const CourseDetailsPage: React.FC<CourseDetailsPageProps> = ({
 
         {/* Curriculum Track Switcher */}
         <div className="flex flex-wrap items-center justify-center gap-3 mb-10">
-          {PROGRAM_SLIDES.map((slide, idx) => (
+          {slides.map((slide, idx) => (
             <button
               key={slide.id}
               onClick={() => setActiveSlideIndex(idx)}
               className={`px-5 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all duration-200 flex items-center gap-2 cursor-pointer ${
                 activeSlideIndex === idx
-                  ? 'bg-gradient-to-r from-[#9B59B6] to-[#7A3E9D] text-white shadow-[0_0_20px_rgba(155,89,182,0.6)] border border-[#D1CADB]/50'
+                  ? 'bg-gradient-to-r from-[#9B59B6] to-[#7A3E9D] text-white border border-[#D1CADB]/50'
                   : 'bg-[#150D24] text-[#A7A0B5] hover:text-white border border-[#5C4B8A]/50 hover:bg-[#1E1133]'
               }`}
             >
@@ -477,10 +512,10 @@ export const CourseDetailsPage: React.FC<CourseDetailsPageProps> = ({
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
           
           {/* Phase 1 Card */}
-          <div className="bg-[#170F28] rounded-3xl p-7 sm:p-8 border border-[#9B59B6]/50 shadow-[0_0_30px_rgba(155,89,182,0.25)] hover:border-[#9B59B6] hover:shadow-[0_0_45px_rgba(155,89,182,0.45)] transition-all duration-300 relative flex flex-col justify-between">
+          <div className="bg-[#170F28] rounded-2xl p-7 sm:p-8 border border-[#5C4B8A]/60 hover:border-[#9B59B6] transition-all duration-300 relative flex flex-col justify-between">
             <div>
               <div className="flex items-center justify-between mb-4">
-                <span className="px-3 py-1 bg-[#2E1A47] border border-[#9B59B6]/60 text-[#F1C40F] rounded-lg text-xs font-bold font-mono shadow-[0_0_12px_rgba(155,89,182,0.3)]">
+                <span className="px-3 py-1 bg-[#2E1A47] border border-[#5C4B8A]/60 text-[#F1C40F] rounded-lg text-xs font-bold font-mono ">
                   {currentSlide.phase1.tag}
                 </span>
                 <span className="text-xs font-semibold text-emerald-400 bg-emerald-950/60 border border-emerald-500/40 px-2.5 py-1 rounded-full">
@@ -528,10 +563,10 @@ export const CourseDetailsPage: React.FC<CourseDetailsPageProps> = ({
           </div>
 
           {/* Phase 2 Card */}
-          <div className="bg-[#170F28] rounded-3xl p-7 sm:p-8 border border-[#9B59B6]/50 shadow-[0_0_30px_rgba(155,89,182,0.25)] hover:border-[#9B59B6] hover:shadow-[0_0_45px_rgba(155,89,182,0.45)] transition-all duration-300 relative flex flex-col justify-between">
+          <div className="bg-[#170F28] rounded-2xl p-7 sm:p-8 border border-[#5C4B8A]/60 hover:border-[#9B59B6] transition-all duration-300 relative flex flex-col justify-between">
             <div>
               <div className="flex items-center justify-between mb-4">
-                <span className="px-3 py-1 bg-[#2E1A47] border border-[#9B59B6]/60 text-[#F1C40F] rounded-lg text-xs font-bold font-mono shadow-[0_0_12px_rgba(155,89,182,0.3)]">
+                <span className="px-3 py-1 bg-[#2E1A47] border border-[#5C4B8A]/60 text-[#F1C40F] rounded-lg text-xs font-bold font-mono ">
                   {currentSlide.phase2.tag}
                 </span>
                 <span className="text-xs font-semibold text-emerald-400 bg-emerald-950/60 border border-emerald-500/40 px-2.5 py-1 rounded-full">
@@ -581,7 +616,7 @@ export const CourseDetailsPage: React.FC<CourseDetailsPageProps> = ({
         </div>
 
         {/* Clean, Bold Syllabus CTA Bar */}
-        <div className="p-6 rounded-2xl bg-gradient-to-r from-[#170F28] via-[#231538] to-[#170F28] border border-[#9B59B6]/40 flex flex-col sm:flex-row items-center justify-between gap-4 shadow-[0_0_25px_rgba(155,89,182,0.18)]">
+        <div className="p-6 rounded-2xl bg-gradient-to-r from-[#170F28] via-[#231538] to-[#170F28] border border-[#5C4B8A]/60 flex flex-col sm:flex-row items-center justify-between gap-4 ">
           <div className="text-center sm:text-left">
             <h4 className="text-base font-bold text-white font-['Sora']">
               Want the complete {currentSlide.duration} curriculum roadmap?
@@ -610,7 +645,7 @@ export const CourseDetailsPage: React.FC<CourseDetailsPageProps> = ({
       </section>
 
       {/* 3. STICKY BOTTOM ACTION BAR (Complies with 15% Mobile Sticky Cap) */}
-      <div className="fixed bottom-0 left-0 right-0 z-40 bg-[#0C0717]/95 backdrop-blur-md border-t border-[#5C4B8A]/50 shadow-[0_0_30px_rgba(46,26,71,0.8)] py-2.5 px-4 sm:px-8">
+      <div className="fixed bottom-0 left-0 right-0 z-40 bg-[#0C0717]/95 backdrop-blur-md border-t border-[#5C4B8A]/50 py-2.5 px-4 sm:px-8">
         <div className="max-w-7xl mx-auto flex items-center justify-between gap-4">
           
           {/* Price information */}

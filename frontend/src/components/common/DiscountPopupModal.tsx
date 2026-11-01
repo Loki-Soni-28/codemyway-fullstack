@@ -4,8 +4,6 @@ import {
   Sparkles, 
   Flame, 
   Clock, 
-  Copy, 
-  Check, 
   CheckCircle, 
   ArrowRight, 
   Percent,
@@ -15,56 +13,43 @@ import {
   Phone,
   Mail
 } from 'lucide-react';
+import { api } from '../../api';
+import { useCountdown } from '../../offer';
 
 interface DiscountPopupModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onClaimDiscount?: (code: string) => void;
+  percent: number;
+  endsAt: string | null;
+  onClaimDiscount?: () => void;
 }
 
 export const DiscountPopupModal: React.FC<DiscountPopupModalProps> = ({
   isOpen,
   onClose,
+  percent,
+  endsAt,
   onClaimDiscount
 }) => {
   const [formData, setFormData] = useState({ name: '', phone: '', email: '' });
-  const [isCopied, setIsCopied] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
+  const [sending, setSending] = useState(false);
+  const [error, setError] = useState('');
+  const timeLeft = useCountdown(endsAt);
 
-  // Live countdown timer state (e.g. 2 days, 14 hours, 32 mins, 45 secs)
-  const [timeLeft, setTimeLeft] = useState({
-    days: 2,
-    hours: 14,
-    minutes: 32,
-    seconds: 45
-  });
-
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setTimeLeft(prev => {
-        if (prev.seconds > 0) return { ...prev, seconds: prev.seconds - 1 };
-        if (prev.minutes > 0) return { ...prev, minutes: prev.minutes - 1, seconds: 59 };
-        if (prev.hours > 0) return { ...prev, hours: prev.hours - 1, minutes: 59, seconds: 59 };
-        if (prev.days > 0) return { ...prev, days: prev.days - 1, hours: 23, minutes: 59, seconds: 59 };
-        return prev;
-      });
-    }, 1000);
-
-    return () => clearInterval(timer);
-  }, []);
-
-  const handleCopyCode = () => {
-    navigator.clipboard?.writeText('BATCH30');
-    setIsCopied(true);
-    setTimeout(() => setIsCopied(false), 2500);
-  };
-
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.name || !formData.phone) return;
-    setIsSubmitted(true);
-    if (onClaimDiscount) {
-      onClaimDiscount('BATCH30');
+    if (!formData.name || !formData.phone || !formData.email || sending) return;
+    setSending(true);
+    setError('');
+    try {
+      await api('/public/discount-claim', { method: 'POST', body: JSON.stringify(formData) });
+      setIsSubmitted(true);
+      onClaimDiscount?.();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Something went wrong. Please try again.');
+    } finally {
+      setSending(false);
     }
   };
 
@@ -74,7 +59,7 @@ export const DiscountPopupModal: React.FC<DiscountPopupModalProps> = ({
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-in fade-in duration-200">
       
       {/* Modal Dialog Box */}
-      <div className="relative w-full max-w-lg bg-[#110B1F] border border-[#5C4B8A] rounded-3xl p-6 sm:p-8 shadow-[0_0_80px_rgba(155,89,182,0.45)] text-white overflow-hidden animate-in zoom-in-95 duration-200">
+      <div className="relative w-full max-w-lg bg-[#110B1F] border border-[#5C4B8A] rounded-2xl p-6 sm:p-8 text-white overflow-hidden animate-in zoom-in-95 duration-200">
         
         {/* Background Ambient Violet & Gold Glows */}
         <div className="absolute -top-24 -left-24 w-56 h-56 bg-[#9B59B6]/25 rounded-full blur-3xl pointer-events-none" />
@@ -98,32 +83,29 @@ export const DiscountPopupModal: React.FC<DiscountPopupModalProps> = ({
                 <Flame className="w-3.5 h-3.5 text-[#F1C40F] animate-pulse" />
                 <span>NEW BATCH COMING SOON</span>
               </span>
-              <span className="text-xs text-[#A7A0B5] font-medium hidden sm:inline">
-                Limited Early-Bird Seats
-              </span>
             </div>
 
             {/* Main Headline */}
             <div>
               <div className="flex items-baseline gap-2">
                 <span className="text-4xl sm:text-5xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-[#F1C40F] via-[#F39C12] to-[#F1C40F] font-['Sora'] drop-shadow-[0_2px_20px_rgba(241,196,15,0.35)]">
-                  FLAT 30% OFF
+                  FLAT {percent}% OFF
                 </span>
               </div>
               <h3 className="text-xl sm:text-2xl font-bold text-white mt-1 font-['Sora'] tracking-tight">
                 Data Analyst + GenAI Flagship Batch
               </h3>
               <p className="text-xs sm:text-sm text-[#D1CADB] mt-1.5 leading-relaxed">
-                Land your first high-paying job in marketing in just 5 months. Master industry-ready skills with real-world campaigns, 1:1 mentor pods, and complete placement backing.
+                Build job-ready data analytics skills in 24 weeks with SQL, Python, BI and GenAI workflows, real projects and 1:1 mentorship.
               </p>
             </div>
 
             {/* Promo Voucher & Coupon Box (Price Removed) */}
-            <div className="p-4 rounded-2xl bg-[#1A102E] border border-[#9B59B6]/50 shadow-[0_0_20px_rgba(155,89,182,0.2)] flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div className="p-4 rounded-2xl bg-[#1A102E] border border-[#5C4B8A]/60 flex flex-col sm:flex-row items-center justify-between gap-4">
               <div className="space-y-1 text-center sm:text-left">
                 <div className="flex items-center justify-center sm:justify-start gap-2">
                   <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-[#2ECC71]/20 text-[#2ECC71] border border-[#2ECC71]/40">
-                    30% SCHOLARSHIP VOUCHER
+                    {percent}% EARLY-BIRD DISCOUNT
                   </span>
                 </div>
                 <div className="text-xs text-[#D1CADB]">
@@ -131,24 +113,13 @@ export const DiscountPopupModal: React.FC<DiscountPopupModalProps> = ({
                 </div>
               </div>
 
-              {/* Coupon Box */}
-              <div className="w-full sm:w-auto flex items-center justify-between sm:justify-start gap-3 bg-[#0C0717] px-4 py-2.5 rounded-xl border border-[#9B59B6]/60 shadow-[0_0_15px_rgba(155,89,182,0.25)]">
-                <div className="text-left">
-                  <div className="text-[10px] text-[#9B59B6] font-mono uppercase font-bold">PROMO CODE</div>
-                  <div className="text-base font-extrabold tracking-wider text-[#F1C40F] font-mono">BATCH30</div>
-                </div>
-                <button
-                  type="button"
-                  onClick={handleCopyCode}
-                  className="p-2 rounded-lg bg-[#2E1A47] hover:bg-[#3B225C] text-white transition-colors cursor-pointer ml-1"
-                  title="Copy coupon code"
-                >
-                  {isCopied ? <Check className="w-4 h-4 text-[#2ECC71]" /> : <Copy className="w-4 h-4 text-[#D1CADB]" />}
-                </button>
+              <div className="w-full sm:w-auto bg-[#0C0717] px-4 py-2.5 rounded-xl border border-[#5C4B8A]/60 text-xs text-[#D1CADB] sm:max-w-[200px]">
+                Reserved for your email and applied automatically at checkout.
               </div>
             </div>
 
-            {/* Countdown Urgency Timer */}
+            {/* Countdown to the real offer deadline */}
+            {timeLeft && (
             <div className="flex items-center justify-between px-3 py-2 rounded-xl bg-[#2E1A47]/30 border border-[#5C4B8A]/40 text-xs">
               <div className="flex items-center gap-2 text-[#D1CADB]">
                 <Clock className="w-4 h-4 text-[#F1C40F] animate-spin-slow" />
@@ -172,6 +143,7 @@ export const DiscountPopupModal: React.FC<DiscountPopupModalProps> = ({
                 </span>
               </div>
             </div>
+            )}
 
             {/* Lead Capture Form */}
             <form onSubmit={handleSubmit} className="space-y-3 pt-1">
@@ -222,13 +194,16 @@ export const DiscountPopupModal: React.FC<DiscountPopupModalProps> = ({
                 </div>
               </div>
 
+              {error && <p role="alert" className="text-xs text-red-400">{error}</p>}
+
               {/* Action Buttons */}
               <button
                 type="submit"
-                className="w-full mt-2 py-3.5 px-4 text-sm font-bold text-[#08070B] bg-[#F1C40F] hover:bg-[#F39C12] rounded-xl transition-all flex items-center justify-center gap-2 cursor-pointer shadow-[0_0_25px_rgba(241,196,15,0.35)] hover:shadow-[0_0_35px_rgba(241,196,15,0.5)] hover:scale-[1.01] active:scale-[0.99]"
+                disabled={sending}
+                className="w-full mt-2 py-3.5 px-4 text-sm font-bold text-[#08070B] bg-[#F1C40F] hover:bg-[#F39C12] rounded-xl transition-all flex items-center justify-center gap-2 cursor-pointer shadow-[0_0_25px_rgba(241,196,15,0.35)] hover:shadow-[0_0_35px_rgba(241,196,15,0.5)] hover:scale-[1.01] active:scale-[0.99] disabled:opacity-60 disabled:cursor-not-allowed"
               >
                 <Zap className="w-4 h-4 fill-current" />
-                <span>Claim 30% Discount & Reserve Seat</span>
+                <span>{sending ? 'Reserving...' : `Claim ${percent}% Discount`}</span>
                 <ArrowRight className="w-4 h-4" />
               </button>
 
@@ -254,28 +229,18 @@ export const DiscountPopupModal: React.FC<DiscountPopupModalProps> = ({
 
             <div>
               <span className="text-xs font-bold text-[#F1C40F] uppercase tracking-wider">
-                Discount Code Reserved!
+                Discount Reserved!
               </span>
               <h4 className="text-2xl font-bold text-white mt-1 font-['Sora']">
                 Congratulations, {formData.name || 'Learner'}! 🎉
               </h4>
               <p className="text-xs text-[#D1CADB] max-w-sm mx-auto mt-2 leading-relaxed">
-                Your <strong>30% Early-Bird Scholarship</strong> has been locked in for the upcoming batch.
+                Your <strong>{percent}% early-bird discount</strong> is reserved for <strong>{formData.email}</strong>.
               </p>
             </div>
 
-            <div className="p-4 rounded-xl bg-[#1A102E] border border-[#5C4B8A]/60 max-w-sm mx-auto text-left space-y-2">
-              <div className="flex items-center justify-between text-xs text-[#A7A0B5]">
-                <span>Applied Coupon:</span>
-                <span className="font-mono font-bold text-[#F1C40F] text-sm">BATCH30</span>
-              </div>
-              <div className="flex items-center justify-between text-xs text-[#A7A0B5]">
-                <span>Scholarship Status:</span>
-                <span className="font-mono font-bold text-[#2ECC71] text-sm">30% OFF Locked In</span>
-              </div>
-              <div className="text-[11px] text-[#A7A0B5] pt-1 border-t border-[#5C4B8A]/30">
-                Admissions counselor will send the onboarding link to <strong>{formData.phone}</strong> via WhatsApp.
-              </div>
+            <div className="p-4 rounded-xl bg-[#1A102E] border border-[#5C4B8A]/60 max-w-sm mx-auto text-left text-xs text-[#D1CADB] leading-relaxed">
+              Sign up or log in with <strong className="text-white">this same email</strong>, then enrol on the course page. The discount is applied automatically at checkout. It works once, for the Data Analyst + GenAI program.
             </div>
 
             <div className="pt-2 flex flex-col sm:flex-row gap-3">

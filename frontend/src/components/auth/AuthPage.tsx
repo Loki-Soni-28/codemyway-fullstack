@@ -29,14 +29,14 @@ import { motion, AnimatePresence } from 'motion/react';
 import codemywayLogo from '../../assets/images/codemyway_logo.png';
 import { api } from '../../api';
 
-interface ApiUser { id: string; email: string; name: string; role: string; phone: string | null }
+interface ApiUser { id: string; email: string; name: string; role: string; phone: string | null; enrolled?: boolean }
 
 const toStudentUser = (u: ApiUser): StudentUser => ({
   fullName: u.name,
   email: u.email,
   mobile: u.phone ?? '',
   isLoggedIn: true,
-  enrolledCourse: 'Data Analyst + GenAI Cohort',
+  enrolled: !!u.enrolled,
 });
 
 const GOOGLE_CLIENT_ID: string = (import.meta as any).env?.VITE_GOOGLE_CLIENT_ID ?? '';

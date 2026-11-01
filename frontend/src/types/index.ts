@@ -1,4 +1,4 @@
-export type NavigationRoute = 'home' | 'course-details' | 'skill-store' | 'student-dashboard' | 'login';
+export type NavigationRoute = 'home' | 'course-details' | 'skill-store' | 'student-dashboard' | 'login' | 'privacy' | 'terms' | 'refund' | 'contact' | 'about';
 
 export interface StudentUser {
   fullName: string;
@@ -6,7 +6,7 @@ export interface StudentUser {
   mobile: string;
   isLoggedIn: boolean;
   avatarUrl?: string;
-  enrolledCourse?: string;
+  enrolled?: boolean;
 }
 
 export interface LeadCaptureData {

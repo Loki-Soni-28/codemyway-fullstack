@@ -39,7 +39,7 @@ export const SkillStorePage: React.FC<SkillStorePageProps> = ({
   };
 
   const upcomingSkills = [
-    { name: 'SQL Schema & Window Functions', icon: Database, color: 'text-[#9B59B6]', bgGlow: 'hover:shadow-[0_0_15px_rgba(155,89,182,0.4)]' },
+    { name: 'SQL Schema & Window Functions', icon: Database, color: 'text-[#9B59B6]', bgGlow: '' },
     { name: 'Executive Tableau & Power BI', icon: BarChart3, color: 'text-[#F1C40F]', bgGlow: 'hover:shadow-[0_0_15px_rgba(241,196,15,0.4)]' },
     { name: 'Python & Pandas Vectorization', icon: Code2, color: 'text-[#2ECC71]', bgGlow: 'hover:shadow-[0_0_15px_rgba(46,204,113,0.4)]' },
     { name: 'GenAI Automation & LLM APIs', icon: Cpu, color: 'text-[#38BDF8]', bgGlow: 'hover:shadow-[0_0_15px_rgba(56,189,248,0.4)]' },
@@ -152,7 +152,7 @@ export const SkillStorePage: React.FC<SkillStorePageProps> = ({
               x: { duration: 0.6, delay: 0.3 },
               y: { duration: 5, repeat: Infinity, ease: "easeInOut" }
             }}
-            className="absolute -top-4 -left-6 z-20 hidden lg:flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#1A102E]/90 border border-[#9B59B6]/60 shadow-[0_0_20px_rgba(155,89,182,0.35)] backdrop-blur-md text-xs font-semibold text-white pointer-events-none"
+            className="absolute -top-4 -left-6 z-20 hidden lg:flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#1A102E]/90 border border-[#5C4B8A]/60 backdrop-blur-md text-xs font-semibold text-white pointer-events-none"
           >
             <Zap className="w-3.5 h-3.5 text-[#F1C40F]" />
             <span>Modular · Self-Paced</span>
@@ -181,7 +181,7 @@ export const SkillStorePage: React.FC<SkillStorePageProps> = ({
             initial={{ opacity: 0, scale: 0.95, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
-            className="relative overflow-hidden rounded-3xl bg-[#120A1F]/80 backdrop-blur-xl border border-[#9B59B6]/45 shadow-[0_0_70px_rgba(155,89,182,0.22)] p-7 sm:p-12 lg:p-16 text-center group"
+            className="relative overflow-hidden rounded-2xl bg-[#120A1F]/80 backdrop-blur-xl border border-[#5C4B8A]/60 p-7 sm:p-12 lg:p-16 text-center group"
           >
             
             {/* Animated Laser Border Beam Sweep (Top & Bottom) */}
@@ -201,7 +201,7 @@ export const SkillStorePage: React.FC<SkillStorePageProps> = ({
               initial={{ opacity: 0, y: -10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.2, duration: 0.5 }}
-              className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-[#1B102B]/90 border border-[#9B59B6]/60 text-xs font-semibold text-[#D1CADB] shadow-[0_0_25px_rgba(155,89,182,0.35)] backdrop-blur-md mb-6 hover:border-[#9B59B6] transition-all cursor-default"
+              className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-[#1B102B]/90 border border-[#5C4B8A]/60 text-xs font-semibold text-[#D1CADB] backdrop-blur-md mb-6 hover:border-[#9B59B6] transition-all cursor-default"
             >
               <span className="relative flex h-2 w-2">
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#2ECC71] opacity-75"></span>
@@ -222,7 +222,7 @@ export const SkillStorePage: React.FC<SkillStorePageProps> = ({
               <span className="block text-xl sm:text-2xl text-[#C084FC] font-semibold mb-2 tracking-wide font-sans">
                 CodeMyWay Skill Store
               </span>
-              <span className="bg-gradient-to-r from-white via-[#F5EDFD] to-[#D8B4FE] bg-clip-text text-transparent drop-shadow-[0_4px_30px_rgba(155,89,182,0.4)]">
+              <span className="bg-gradient-to-r from-white via-[#F5EDFD] to-[#D8B4FE] bg-clip-text text-transparent drop-">
                 Coming
               </span>{' '}
               <span className="bg-gradient-to-r from-[#F1C40F] via-[#F39C12] via-[#FFD700] to-[#F1C40F] bg-clip-text text-transparent drop-shadow-[0_4px_35px_rgba(241,196,15,0.55)] animate-text-shimmer inline-block">
@@ -249,7 +249,7 @@ export const SkillStorePage: React.FC<SkillStorePageProps> = ({
             >
               {!isSubscribed ? (
                 <form onSubmit={handleNotifySubmit} className="space-y-3">
-                  <div className="flex flex-col sm:flex-row items-center gap-2 p-1.5 rounded-2xl bg-[#0C0717]/90 border border-[#5C4B8A]/60 shadow-[0_0_25px_rgba(92,75,138,0.25)] focus-within:border-[#9B59B6] focus-within:shadow-[0_0_30px_rgba(155,89,182,0.45)] transition-all">
+                  <div className="flex flex-col sm:flex-row items-center gap-2 p-1.5 rounded-2xl bg-[#0C0717]/90 border border-[#5C4B8A]/60 focus-within:border-[#9B59B6] focus-within:transition-all">
                     <input
                       type="email"
                       required
@@ -322,7 +322,7 @@ export const SkillStorePage: React.FC<SkillStorePageProps> = ({
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.8, duration: 0.6 }}
-          className="mt-8 p-5 sm:p-6 rounded-2xl bg-gradient-to-r from-[#170F28] via-[#231538] to-[#170F28] border border-[#9B59B6]/40 shadow-[0_0_25px_rgba(155,89,182,0.15)] hover:border-[#9B59B6]/70 hover:shadow-[0_0_35px_rgba(155,89,182,0.25)] transition-all flex flex-col sm:flex-row items-center justify-between gap-4 text-center sm:text-left group"
+          className="mt-8 p-5 sm:p-6 rounded-2xl bg-gradient-to-r from-[#170F28] via-[#231538] to-[#170F28] border border-[#5C4B8A]/60 hover:border-[#5C4B8A]/60 transition-all flex flex-col sm:flex-row items-center justify-between gap-4 text-center sm:text-left group"
         >
           <div className="space-y-1">
             <div className="flex items-center justify-center sm:justify-start gap-2 text-xs font-semibold text-[#F1C40F]">

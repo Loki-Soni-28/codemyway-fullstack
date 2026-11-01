@@ -9,6 +9,8 @@ function hashPassword(password: string): string {
 
 async function main() {
   console.log('Clearing database...');
+  await prisma.payment.deleteMany({});
+  await prisma.discountClaim.deleteMany({});
   await prisma.achievement.deleteMany({});
   await prisma.supportMessage.deleteMany({});
   await prisma.supportTicket.deleteMany({});
@@ -102,8 +104,8 @@ async function main() {
       slug: 'data-analyst-with-gen-ai',
       description: 'Analyze faster with AI-powered analytics. Master Excel, SQL, Python, Statistics, and Power BI while learning to implement real-world AI-assisted analytics workflows.',
       duration: '24 Weeks',
-      price: 15999,
-      priceOriginal: 29999,
+      price: 24999,
+      priceOriginal: 36000,
       mode: 'Live',
       published: true,
       features: {
@@ -242,8 +244,8 @@ async function main() {
       slug: 'data-science-ml-gen-ai',
       description: 'Build predictive models, LLM applications, and intelligent systems. Cover classical machine learning, Deep Learning via PyTorch, NLP, RAG architecture, and Multi-Agent structures.',
       duration: '40 Weeks',
-      price: 25999,
-      priceOriginal: 44999,
+      price: 49999,
+      priceOriginal: 82999,
       mode: 'Live',
       published: true,
       features: {

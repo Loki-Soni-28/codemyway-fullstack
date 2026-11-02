@@ -78,15 +78,15 @@ export const StudentMentorView: React.FC<StudentMentorViewProps> = ({
   const [selectedSlotId, setSelectedSlotId] = useState<string>('');
   const [bookingTopic, setBookingTopic] = useState<string>('');
   const [bookingAgenda, setBookingAgenda] = useState<string>('');
+  const [bookingPlatform, setBookingPlatform] = useState<string>('CodeMyWay Live Room');
   const [isSubmittingBooking, setIsSubmittingBooking] = useState<boolean>(false);
 
-  // Support query modal state
+  // Ask Mentor / Support Query Modal State
   const [isQueryModalOpen, setIsQueryModalOpen] = useState<boolean>(false);
+  const [queryCategory, setQueryCategory] = useState<MentorSupportQuery['category']>('Project Guidance');
   const [querySubject, setQuerySubject] = useState<string>('');
   const [queryMessage, setQueryMessage] = useState<string>('');
-  const [queryCategory, setQueryCategory] = useState<MentorSupportQuery['category']>('Project Guidance');
-  const [isSubmittingQuery] = useState<boolean>(false);
-  const [bookingPlatform, setBookingPlatform] = useState<string>('CodeMyWay Live Room');
+  const [isSubmittingQuery, setIsSubmittingQuery] = useState<boolean>(false);
 
   // History Tab Filter
   const [historyFilter, setHistoryFilter] = useState<'all' | 'COMPLETED' | 'CANCELLED'>('all');
@@ -158,10 +158,10 @@ export const StudentMentorView: React.FC<StudentMentorViewProps> = ({
     try {
       const res = await api<{ success: boolean; message: string; session: any }>('/student/mentor', {
         method: 'POST',
-        body: {
+        body: JSON.stringify({
           slotId: selectedSlotId,
           topic: `${bookingTopic.trim()}${bookingAgenda.trim() ? ` - ${bookingAgenda.trim()}` : ''}`
-        }
+        }) as any
       });
 
       if (res && res.success) {
@@ -272,34 +272,39 @@ export const StudentMentorView: React.FC<StudentMentorViewProps> = ({
   const filteredHistory = pastSessions;
 
   // Real available dates & slots for assigned mentor
-  const availableDates = assignedMentor 
-    ? Array.from(new Set(assignedMentor.availableSlots.map((s: { date: string }) => s.date))).sort()
+  const availableDates: string[] = assignedMentor
+    ? Array.from(new Set<string>(assignedMentor.availableSlots.map((s: any) => s.date))).sort()
     : [];
 
   const slotsForSelectedDate = assignedMentor && selectedDate
-    ? assignedMentor.availableSlots.filter((s: { date: string }) => s.date === selectedDate)
+    ? assignedMentor.availableSlots.filter((s: any) => s.date === selectedDate)
     : [];
 
-  
-  const progressFeedback = null as StudentProgressFeedback | null;
+  const [progressFeedback] = useState<StudentProgressFeedback | null>(null);
 
   const handleToggleActionItem = (_itemId: string) => {};
 
-  const handleQuerySubmit = (e: React.FormEvent) => {
+  const handleQuerySubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!querySubject.trim() || !queryMessage.trim()) {
       showToast('error', 'Please fill in both subject and message.');
       return;
     }
-    showToast('success', 'Your query has been sent directly to your mentor. Typical response time is under 4 hours.');
-    setQuerySubject('');
-    setQueryMessage('');
-    setIsQueryModalOpen(false);
+    setIsSubmittingQuery(true);
+    try {
+      showToast('success', 'Your query has been sent directly to your mentor. Typical response time is under 4 hours.');
+      setQuerySubject('');
+      setQueryMessage('');
+      setIsQueryModalOpen(false);
+    } finally {
+      setIsSubmittingQuery(false);
+    }
   };
 
-  const getStatusBadge = (status: MentorshipSessionStatus) => {
+  const getStatusBadge = (status: string) => {
     switch (status) {
       case 'Upcoming':
+      case 'SCHEDULED':
         return (
           <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
@@ -314,6 +319,7 @@ export const StudentMentorView: React.FC<StudentMentorViewProps> = ({
           </span>
         );
       case 'Completed':
+      case 'COMPLETED':
         return (
           <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-blue-500/15 text-blue-400 border border-blue-500/30">
             <CheckCircle2 className="w-3.5 h-3.5" />
@@ -321,6 +327,7 @@ export const StudentMentorView: React.FC<StudentMentorViewProps> = ({
           </span>
         );
       case 'Cancelled':
+      case 'CANCELLED':
         return (
           <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-rose-500/15 text-rose-400 border border-rose-500/30">
             <AlertCircle className="w-3.5 h-3.5" />
@@ -335,9 +342,42 @@ export const StudentMentorView: React.FC<StudentMentorViewProps> = ({
           </span>
         );
       default:
-        return null;
+        return (
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-slate-500/15 text-slate-400 border border-slate-500/30">
+            {status}
+          </span>
+        );
     }
   };
+
+  if (isLoading) {
+    return (
+      <div className="flex-1 bg-[#070D1B] min-h-screen flex flex-col items-center justify-center p-12 space-y-4">
+        <div className="w-10 h-10 rounded-full border-2 border-blue-500/20 border-t-blue-400 animate-spin" />
+        <p className="text-xs text-[#94A3B8] font-mono tracking-wider animate-pulse">
+          Loading Mentorship Workspace...
+        </p>
+      </div>
+    );
+  }
+
+  if (fetchError) {
+    return (
+      <div className="flex-1 bg-[#070D1B] min-h-screen p-6 flex items-center justify-center">
+        <div className="max-w-md w-full bg-[#0D1527] border border-rose-500/30 rounded-2xl p-6 text-center space-y-4 shadow-xl">
+          <AlertCircle className="w-8 h-8 text-rose-400 mx-auto" />
+          <h3 className="text-sm font-bold text-white">Mentorship Connection Issue</h3>
+          <p className="text-xs text-[#94A3B8]">{fetchError}</p>
+          <button
+            onClick={() => fetchMentorData()}
+            className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-xs font-semibold text-white rounded-xl transition cursor-pointer"
+          >
+            Try Again
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex-1 bg-[#070D1B] text-white min-h-screen p-4 sm:p-6 lg:p-8 space-y-8">
@@ -640,7 +680,7 @@ export const StudentMentorView: React.FC<StudentMentorViewProps> = ({
                 </button>
 
                 {/* JOIN MEETING BUTTON - STRICTLY RENDERED ONLY WHEN MEETING LINK IS PRESENT */}
-                {primaryUpcomingSession.meetingLink && primaryUpcomingSession.status === 'Upcoming' ? (
+                {primaryUpcomingSession.meetingLink && (primaryUpcomingSession.status === 'Upcoming' || primaryUpcomingSession.status === 'SCHEDULED') ? (
                   <a
                     href={primaryUpcomingSession.meetingLink}
                     target="_blank"
@@ -707,7 +747,7 @@ export const StudentMentorView: React.FC<StudentMentorViewProps> = ({
                 <span>Demonstrated Strengths</span>
               </div>
               <div className="space-y-1.5">
-                {progressFeedback.strengths.map((item, i) => (
+                {progressFeedback.strengths.map((item: any, i: number) => (
                   <div key={i} className="flex items-start gap-2 text-xs text-[#CBD5E1]">
                     <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 shrink-0 mt-1.5" />
                     <span>{item}</span>
@@ -723,7 +763,7 @@ export const StudentMentorView: React.FC<StudentMentorViewProps> = ({
                 <span>Areas for Improvement</span>
               </div>
               <div className="space-y-1.5">
-                {progressFeedback.areasForImprovement.map((item, i) => (
+                {progressFeedback.areasForImprovement.map((item: any, i: number) => (
                   <div key={i} className="flex items-start gap-2 text-xs text-[#CBD5E1]">
                     <span className="w-1.5 h-1.5 rounded-full bg-amber-400 shrink-0 mt-1.5" />
                     <span>{item}</span>
@@ -739,7 +779,7 @@ export const StudentMentorView: React.FC<StudentMentorViewProps> = ({
                 <span>Next Learning Milestones</span>
               </div>
               <div className="space-y-1.5">
-                {progressFeedback.nextLearningGoals.map((item, i) => (
+                {progressFeedback.nextLearningGoals.map((item: any, i: number) => (
                   <div key={i} className="flex items-start gap-2 text-xs text-[#CBD5E1]">
                     <span className="w-1.5 h-1.5 rounded-full bg-[#38BDF8] shrink-0 mt-1.5" />
                     <span>{item}</span>
@@ -758,7 +798,7 @@ export const StudentMentorView: React.FC<StudentMentorViewProps> = ({
                   Personal Action Items Assigned by Mentor
                 </span>
                 <span className="text-[11px] text-[#94A3B8]">
-                  ({progressFeedback.actionItems.filter(a => a.completed).length} of {progressFeedback.actionItems.length} completed)
+                  ({progressFeedback.actionItems.filter((a: any) => a.completed).length} of {progressFeedback.actionItems.length} completed)
                 </span>
               </div>
               <span className="text-[11px] text-[#64748B] hidden sm:inline">
@@ -767,7 +807,7 @@ export const StudentMentorView: React.FC<StudentMentorViewProps> = ({
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-              {progressFeedback.actionItems.map((act) => (
+              {progressFeedback.actionItems.map((act: any) => (
                 <div 
                   key={act.id}
                   onClick={() => handleToggleActionItem(act.id)}
@@ -858,7 +898,7 @@ export const StudentMentorView: React.FC<StudentMentorViewProps> = ({
                 </div>
                 <div className="text-right shrink-0">
                   <span className="text-xs font-bold text-emerald-400 block font-mono">
-                    {assignedMentor.availableSlots.filter(s => !s.isBooked).length} Available Slots
+                    {assignedMentor.availableSlots.filter((s: any) => !s.isBooked).length} Available Slots
                   </span>
                 </div>
               </div>
@@ -880,8 +920,8 @@ export const StudentMentorView: React.FC<StudentMentorViewProps> = ({
 
               {availableDates.length > 0 ? (
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                  {availableDates.map((dateStr) => {
-                    const sampleSlot = assignedMentor?.availableSlots.find(s => s.date === dateStr);
+                  {availableDates.map((dateStr: string) => {
+                    const sampleSlot = assignedMentor?.availableSlots.find((s: any) => s.date === dateStr);
                     const isSelected = selectedDate === dateStr;
 
                     return (
@@ -890,7 +930,7 @@ export const StudentMentorView: React.FC<StudentMentorViewProps> = ({
                         key={dateStr}
                         onClick={() => {
                           setSelectedDate(dateStr);
-                          const firstFree = assignedMentor?.availableSlots.find(s => s.date === dateStr && !s.isBooked);
+                          const firstFree = assignedMentor?.availableSlots.find((s: any) => s.date === dateStr && !s.isBooked);
                           setSelectedSlotId(firstFree ? firstFree.id : '');
                         }}
                         className={`p-2.5 rounded-xl text-left border transition-all cursor-pointer ${
@@ -924,7 +964,7 @@ export const StudentMentorView: React.FC<StudentMentorViewProps> = ({
 
               {slotsForSelectedDate.length > 0 ? (
                 <div className="grid grid-cols-2 gap-2">
-                  {slotsForSelectedDate.map((slot) => {
+                  {slotsForSelectedDate.map((slot: any) => {
                     const isSelected = selectedSlotId === slot.id;
                     const isBooked = slot.isBooked;
 
@@ -1105,7 +1145,7 @@ export const StudentMentorView: React.FC<StudentMentorViewProps> = ({
                   : 'text-[#94A3B8] hover:text-white'
               }`}
             >
-              Completed ({historicalSessions.filter(s => s.status === 'COMPLETED').length})
+              Completed ({historicalSessions.filter(s => s.status === 'COMPLETED' || s.status === 'Completed').length})
             </button>
             <button
               onClick={() => setHistoryFilter('CANCELLED')}
@@ -1115,7 +1155,7 @@ export const StudentMentorView: React.FC<StudentMentorViewProps> = ({
                   : 'text-[#94A3B8] hover:text-white'
               }`}
             >
-              Cancelled ({historicalSessions.filter(s => s.status === 'Cancelled').length})
+              Cancelled ({historicalSessions.filter(s => s.status === 'CANCELLED' || s.status === 'Cancelled').length})
             </button>
           </div>
         </div>

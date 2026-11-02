@@ -6,17 +6,30 @@ export class ApiError extends Error {
   }
 }
 
-type ApiInit = Omit<RequestInit, 'body'> & { body?: BodyInit | object | null };
+export interface ApiRequestInit extends Omit<RequestInit, 'body'> {
+  body?: any;
+}
 
-export async function api<T = unknown>(path: string, init: ApiInit = {}): Promise<T> {
-  // Plain objects are sent as JSON; strings, FormData, etc. pass through untouched.
-  const isPlainObject = typeof init.body === 'object' && init.body !== null
-    && Object.getPrototypeOf(init.body) === Object.prototype;
+export async function api<T = unknown>(path: string, init: ApiRequestInit = {}): Promise<T> {
+  const isPlainObject =
+    init.body !== null &&
+    typeof init.body === 'object' &&
+    !(init.body instanceof FormData) &&
+    !(init.body instanceof Blob);
+
+  const headers: Record<string, string> = {};
+  if (isPlainObject || (typeof init.body === 'string' && init.body.trim().startsWith('{'))) {
+    headers['Content-Type'] = 'application/json';
+  }
+
   const res = await fetch(`/api${path}`, {
     credentials: 'include',
     ...init,
-    headers: { 'Content-Type': 'application/json', ...init.headers },
-    body: isPlainObject ? JSON.stringify(init.body) : (init.body as BodyInit | null | undefined),
+    headers: {
+      ...headers,
+      ...init.headers,
+    },
+    body: isPlainObject ? JSON.stringify(init.body) : init.body,
   });
   const data = await res.json().catch(() => ({}));
   if (!res.ok) throw new ApiError((data as { error?: string }).error || `Request failed (${res.status})`, res.status);

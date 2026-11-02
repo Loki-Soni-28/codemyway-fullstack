@@ -87,10 +87,28 @@ export async function GET() {
           });
         }
 
+        let parsedPreRead: any = null;
+        try {
+          if (cls.preRead) parsedPreRead = JSON.parse(cls.preRead);
+        } catch {
+          parsedPreRead = null;
+        }
+
+        const weekNumber = parsedPreRead?.weekNumber ?? (cls.title.includes('Week 2') || cls.title.includes('Class 04') || cls.title.includes('Class 05') || cls.title.includes('Class 06') ? 2 : (cls.title.includes('Week 3') || cls.title.includes('Class 07') || cls.title.includes('Class 08') ? 3 : 1));
+        const order = parsedPreRead?.order ?? (parseInt(cls.title.match(/Class 0?(\d+)/i)?.[1] || '1', 10));
+        const topicHeadlines = parsedPreRead?.topicHeadlines || parsedPreRead?.objectives || [];
+        const isMinorProject = !!(parsedPreRead?.isMinorProject || cls.title.toLowerCase().includes('minor project'));
+        const isGenAI = !!(parsedPreRead?.isGenAI || cls.title.toLowerCase().includes('genai'));
+
         return {
           id: cls.id,
           title: cls.title,
           description: cls.description,
+          weekNumber,
+          order,
+          topicHeadlines,
+          isMinorProject,
+          isGenAI,
           date: cls.date,
           startTime: cls.startTime,
           endTime: cls.endTime,
@@ -100,7 +118,7 @@ export async function GET() {
           instructorName: cls.instructor.name,
           hasRecording: !!cls.recordingUrl,
           hasMaterials: !!cls.preRead,
-          preRead: cls.preRead ? JSON.parse(cls.preRead) : null,
+          preRead: parsedPreRead,
           postRead: cls.postRead ? JSON.parse(cls.postRead) : null,
           status,
           hasAttended: !!hasAttended,
@@ -113,6 +131,9 @@ export async function GET() {
         };
       });
 
+      // Sort classes deterministically by order then weekNumber
+      classesFormatted.sort((a, b) => (a.order || 0) - (b.order || 0));
+
       const completedClasses = classesFormatted.filter(c => c.status === 'COMPLETED').length;
       const progressPercent = totalClasses > 0 ? Math.round((completedClasses / totalClasses) * 100) : 0;
 
@@ -120,6 +141,7 @@ export async function GET() {
         id: mod.id,
         title: mod.title,
         order: mod.order,
+        durationWeeks: mod.title === 'SQL' || mod.order === 1 ? '3 Weeks' : `${totalClasses} Lectures`,
         progressPercent,
         completedClasses,
         totalClasses,

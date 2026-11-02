@@ -28,6 +28,7 @@ import codemywayLogo from '../../assets/images/codemyway_logo.png';
 import { StudentUser } from '../../types';
 import { FacultyWeeklyCheckInView } from './FacultyWeeklyCheckInView';
 import { AdminWeeklyCheckInView } from './AdminWeeklyCheckInView';
+import { AdminCurriculumManagementView } from './admin/AdminCurriculumManagementView';
 
 interface FacultyReviewViewProps {
   currentUser: StudentUser;
@@ -100,8 +101,8 @@ export const FacultyReviewView: React.FC<FacultyReviewViewProps> = ({
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [selectedCourse, setSelectedCourse] = useState<string>('all');
 
-  // Navigation tab: 'projects' or 'mentorship'
-  const [activeTab, setActiveTab] = useState<'projects' | 'mentorship' | 'weekly-checkins'>('weekly-checkins');
+  // Navigation tab: 'projects', 'mentorship', 'weekly-checkins', or 'curriculum'
+  const [activeTab, setActiveTab] = useState<'projects' | 'mentorship' | 'weekly-checkins' | 'curriculum'>('weekly-checkins');
 
   // Mentorship Slots State
   const [mentorSlots, setMentorSlots] = useState<FacultyMentorshipSlot[]>([]);
@@ -383,6 +384,20 @@ export const FacultyReviewView: React.FC<FacultyReviewViewProps> = ({
             <Calendar className="w-4 h-4" />
             <span>1:1 Mentorship & Slots ({mentorSlots.length})</span>
           </button>
+
+          {currentUser.role === 'ADMIN' && (
+            <button
+              onClick={() => setActiveTab('curriculum')}
+              className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer ${
+                activeTab === 'curriculum'
+                  ? 'bg-amber-600 text-white shadow-md shadow-amber-600/30'
+                  : 'text-[#94A3B8] hover:text-white bg-[#0A1120] border border-[#1A263D]'
+              }`}
+            >
+              <Sparkles className="w-4 h-4 text-amber-300" />
+              <span>Curriculum Management</span>
+            </button>
+          )}
         </div>
 
 {activeTab === 'weekly-checkins' ? (
@@ -599,7 +614,7 @@ export const FacultyReviewView: React.FC<FacultyReviewViewProps> = ({
           </div>
         )}
     </>
-  ) : (
+  ) : activeTab === 'mentorship' ? (
     /* ========================================================
        MENTORSHIP SLOTS & 1:1 SESSIONS MANAGEMENT
        ======================================================== */
@@ -756,6 +771,8 @@ export const FacultyReviewView: React.FC<FacultyReviewViewProps> = ({
         )}
       </div>
     </div>
+  ) : (
+    <AdminCurriculumManagementView />
   )}
 
       </main>

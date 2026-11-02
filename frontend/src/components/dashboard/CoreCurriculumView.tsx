@@ -80,6 +80,11 @@ export interface CurriculumClassItem {
   attendance: string;
   problemsSolved: string;
   recordingDuration?: string;
+  weekNumber?: number;
+  order?: number;
+  topicHeadlines?: string[];
+  isMinorProject?: boolean;
+  isGenAI?: boolean;
   preRead: {
     title: string;
     readTime: string;
@@ -298,21 +303,24 @@ const COMPLETE_CURRICULUM_MODULES: CurriculumModuleItem[] = [
   // ==========================================
   // PHASE 1
   // ==========================================
+    // ==========================================
+  // MODULE 1: SQL (3 WEEKS / 8 CLASSES)
+  // ==========================================
   {
     id: 1,
     moduleNumber: 1,
     phase: 1,
-    title: 'SQL for Data Analytics',
-    durationWeeks: '4 weeks',
+    title: 'SQL',
+    durationWeeks: '3 Weeks',
     status: 'completed',
     mockInterviewStatus: 'Not Required',
     attendancePercent: '100%',
     modulePsp: '100%',
     classes: [
       {
-        id: 'm1-d1',
-        dayNumber: 'DAY 1, 01 APR',
-        title: 'SQL: Schema Architecture, Tables & BigQuery Setup',
+        id: 'c1100001-0000-4000-8000-000000000001',
+        dayNumber: 'Class 01',
+        title: 'Database Fundamentals & BigQuery Setup',
         dateFormatted: 'Wed, 01 Apr 2026',
         time: '9:00 PM Wed, 01 Apr',
         mandatory: true,
@@ -322,27 +330,42 @@ const COMPLETE_CURRICULUM_MODULES: CurriculumModuleItem[] = [
         additionalProblemsCount: '4/4',
         attendance: '100%',
         problemsSolved: '9 / 9',
+        weekNumber: 1,
+        order: 1,
+        topicHeadlines: [
+          'Introduction to Databases and DBMS',
+          'RDBMS and Database vs Data Warehouse',
+          'Database Schema and ER Diagrams',
+          'Data Types and Database Keys',
+          'BigQuery Setup'
+        ],
         preRead: {
-          title: '3NF Relational Schemas, Constraints & Keys',
+          title: 'Database Fundamentals & BigQuery Setup',
           readTime: '10 min read',
-          summary: 'Learn table relationships, primary keys, and foreign keys in transactional databases.',
-          keyPoints: ['Eliminate data redundancy using 3NF tables', 'Primary Key guarantees unique row identity']
+          summary: 'Fundamental concepts of relational database architecture, schemas, primary/foreign keys, and cloud BigQuery environment setup.',
+          keyPoints: [
+            'Introduction to Databases and DBMS',
+            'RDBMS and Database vs Data Warehouse',
+            'Database Schema and ER Diagrams',
+            'Data Types and Database Keys',
+            'BigQuery Setup'
+          ]
         },
         session: {
-          title: 'SQL: Schema Architecture & BigQuery Setup',
+          title: 'Database Fundamentals & BigQuery Setup',
           time: '9:00 PM Wed, 01 Apr',
           duration: '2h 00m',
           attendanceCoins: 8,
           archiveCoins: 3,
-          flashcards: [{ id: 1, question: 'What is a Foreign Key constraint?', answer: 'A column in one table referring to the Primary Key in another table to preserve referential integrity.' }]
+          flashcards: [{ id: 1, question: 'What is a Primary Key constraint?', answer: 'A unique identifier for each record in a database table that cannot contain NULL values.' }]
         },
         assignments: SAMPLE_PROBLEMS.slice(0, 5),
         additionalProblems: SAMPLE_BONUS_PROBLEMS.slice(0, 2)
       },
       {
-        id: 'm1-d2',
-        dayNumber: 'DAY 2, 03 APR',
-        title: 'SQL: Filtering, Aggregations & GROUP BY',
+        id: 'c1100001-0000-4000-8000-000000000002',
+        dayNumber: 'Class 02',
+        title: 'SQL Basics & Data Extraction',
         dateFormatted: 'Fri, 03 Apr 2026',
         time: '9:00 PM Fri, 03 Apr',
         mandatory: true,
@@ -352,27 +375,46 @@ const COMPLETE_CURRICULUM_MODULES: CurriculumModuleItem[] = [
         additionalProblemsCount: '5/5',
         attendance: '100%',
         problemsSolved: '12 / 12',
+        weekNumber: 1,
+        order: 2,
+        topicHeadlines: [
+          'SELECT and FROM',
+          'DISTINCT',
+          'Aliases',
+          'ORDER BY',
+          'LIMIT and OFFSET',
+          'Inline Calculations',
+          'Basic SQL Queries'
+        ],
         preRead: {
-          title: 'WHERE vs HAVING and Aggregate Rollups',
-          readTime: '9 min read',
-          summary: 'Aggregate metrics with SUM, AVG, COUNT, MIN, MAX and conditional HAVING filters.',
-          keyPoints: ['WHERE filters rows before aggregation; HAVING filters aggregated groups']
+          title: 'SQL Basics & Data Extraction',
+          readTime: '10 min read',
+          summary: 'Extracting records using SELECT, filtering duplicates with DISTINCT, aliasing columns, ordering results, and inline arithmetic operations.',
+          keyPoints: [
+            'SELECT and FROM',
+            'DISTINCT',
+            'Aliases',
+            'ORDER BY',
+            'LIMIT and OFFSET',
+            'Inline Calculations',
+            'Basic SQL Queries'
+          ]
         },
         session: {
-          title: 'SQL: Filtering & Aggregations',
+          title: 'SQL Basics & Data Extraction',
           time: '9:00 PM Fri, 03 Apr',
           duration: '2h 15m',
           attendanceCoins: 8,
           archiveCoins: 3,
-          flashcards: [{ id: 1, question: 'Can you use aggregate functions in a WHERE clause?', answer: 'No, aggregate functions belong in HAVING or SELECT, because WHERE executes before grouping.' }]
+          flashcards: [{ id: 1, question: 'What does DISTINCT do in a SELECT query?', answer: 'Eliminates duplicate rows from the query output.' }]
         },
         assignments: SAMPLE_PROBLEMS.slice(0, 7),
         additionalProblems: SAMPLE_BONUS_PROBLEMS
       },
       {
-        id: 'm1-d3',
-        dayNumber: 'DAY 3, 06 APR',
-        title: 'SQL: Multi-Table Joins & Common Table Expressions (CTEs)',
+        id: 'c1100001-0000-4000-8000-000000000003',
+        dayNumber: 'Class 03',
+        title: 'Filtering & Conditional Logic',
         dateFormatted: 'Mon, 06 Apr 2026',
         time: '9:00 PM Mon, 06 Apr',
         mandatory: true,
@@ -382,27 +424,48 @@ const COMPLETE_CURRICULUM_MODULES: CurriculumModuleItem[] = [
         additionalProblemsCount: '6/6',
         attendance: '100%',
         problemsSolved: '14 / 14',
+        weekNumber: 1,
+        order: 3,
+        topicHeadlines: [
+          'WHERE Clause',
+          'AND, OR and NOT',
+          'Comparison Operators',
+          'BETWEEN, IN and LIKE',
+          'NULL vs Blank',
+          'IS NULL and IS NOT NULL',
+          'CASE and IF',
+          'DISTINCT and Filtering Practice'
+        ],
         preRead: {
-          title: 'INNER, LEFT, RIGHT JOINs and Readable CTEs',
+          title: 'Filtering & Conditional Logic',
           readTime: '12 min read',
-          summary: 'Combine datasets seamlessly using join predicates and WITH clauses for clean code.',
-          keyPoints: ['LEFT JOIN preserves all left-table records even when right side is NULL']
+          summary: 'Granular data filtering using WHERE clauses, Boolean conjunctions, pattern matching with LIKE, NULL handling, and CASE expressions.',
+          keyPoints: [
+            'WHERE Clause',
+            'AND, OR and NOT',
+            'Comparison Operators',
+            'BETWEEN, IN and LIKE',
+            'NULL vs Blank',
+            'IS NULL and IS NOT NULL',
+            'CASE and IF',
+            'DISTINCT and Filtering Practice'
+          ]
         },
         session: {
-          title: 'SQL: Multi-Table Joins & CTEs',
+          title: 'Filtering & Conditional Logic',
           time: '9:00 PM Mon, 06 Apr',
           duration: '2h 30m',
           attendanceCoins: 8,
           archiveCoins: 3,
-          flashcards: [{ id: 1, question: 'What is a Common Table Expression (CTE)?', answer: 'A temporary named result set defined via WITH clause that improves readability and enables recursive queries.' }]
+          flashcards: [{ id: 1, question: 'How is NULL compared in SQL?', answer: 'Using IS NULL or IS NOT NULL, never with the equality (=) operator.' }]
         },
         assignments: SAMPLE_PROBLEMS.slice(0, 8),
         additionalProblems: SAMPLE_BONUS_PROBLEMS
       },
       {
-        id: 'm1-d4',
-        dayNumber: 'DAY 4, 08 APR',
-        title: 'SQL: Analytical Window Functions & Rolling Metrics',
+        id: 'c1100001-0000-4000-8000-000000000004',
+        dayNumber: 'Class 04',
+        title: 'SQL Functions & Data Aggregation',
         dateFormatted: 'Wed, 08 Apr 2026',
         time: '9:00 PM Wed, 08 Apr',
         mandatory: true,
@@ -412,22 +475,251 @@ const COMPLETE_CURRICULUM_MODULES: CurriculumModuleItem[] = [
         additionalProblemsCount: '8/8',
         attendance: '100%',
         problemsSolved: '17 / 17',
+        weekNumber: 2,
+        order: 4,
+        topicHeadlines: [
+          'String Functions',
+          'Numeric Functions',
+          'Date and Time Functions',
+          'ROUND',
+          'COUNT, SUM and AVG',
+          'MIN and MAX',
+          'COUNT Variations'
+        ],
         preRead: {
-          title: 'OVER (PARTITION BY ... ORDER BY ...) Deep Dive',
+          title: 'SQL Functions & Data Aggregation',
           readTime: '11 min read',
-          summary: 'Compute running revenue sums, moving 7-day averages, RANK, and DENSE_RANK without collapsing rows.',
-          keyPoints: ['Window functions compute values across related row partitions without grouping them into single rows']
+          summary: 'Transform strings, dates, and numbers, and compute aggregate metrics with COUNT, SUM, AVG, MIN, and MAX.',
+          keyPoints: [
+            'String Functions',
+            'Numeric Functions',
+            'Date and Time Functions',
+            'ROUND',
+            'COUNT, SUM and AVG',
+            'MIN and MAX',
+            'COUNT Variations'
+          ]
         },
         session: {
-          title: 'SQL: Analytical Window Functions',
+          title: 'SQL Functions & Data Aggregation',
           time: '9:00 PM Wed, 08 Apr',
           duration: '2h 45m',
           attendanceCoins: 8,
           archiveCoins: 3,
-          flashcards: [{ id: 1, question: 'What is the difference between RANK() and DENSE_RANK()?', answer: 'RANK() skips rank numbers after ties (1, 1, 3), whereas DENSE_RANK() does not skip (1, 1, 2).' }]
+          flashcards: [{ id: 1, question: 'What is the difference between COUNT(*) and COUNT(column)?', answer: 'COUNT(*) counts all rows including NULLs; COUNT(column) counts only non-NULL occurrences.' }]
         },
         assignments: SAMPLE_PROBLEMS,
         additionalProblems: SAMPLE_BONUS_PROBLEMS
+      },
+      {
+        id: 'c1100001-0000-4000-8000-000000000005',
+        dayNumber: 'Class 05',
+        title: 'GROUP BY, HAVING & Query Execution',
+        dateFormatted: 'Fri, 10 Apr 2026',
+        time: '9:00 PM Fri, 10 Apr',
+        mandatory: true,
+        status: 'completed',
+        lecturePercent: '100.0%',
+        assignmentCount: '7/7',
+        additionalProblemsCount: '5/5',
+        attendance: '100%',
+        problemsSolved: '12 / 12',
+        weekNumber: 2,
+        order: 5,
+        topicHeadlines: [
+          'GROUP BY',
+          'HAVING',
+          'WHERE vs HAVING',
+          'Aggregate Analysis',
+          'SQL Query Execution Order',
+          'Grouped Business Analysis'
+        ],
+        preRead: {
+          title: 'GROUP BY, HAVING & Query Execution',
+          readTime: '12 min read',
+          summary: 'Segment rows into analytical cohorts, filter aggregated groups with HAVING, and understand the internal SQL execution lifecycle.',
+          keyPoints: [
+            'GROUP BY',
+            'HAVING',
+            'WHERE vs HAVING',
+            'Aggregate Analysis',
+            'SQL Query Execution Order',
+            'Grouped Business Analysis'
+          ]
+        },
+        session: {
+          title: 'GROUP BY, HAVING & Query Execution',
+          time: '9:00 PM Fri, 10 Apr',
+          duration: '2h 30m',
+          attendanceCoins: 8,
+          archiveCoins: 3,
+          flashcards: [{ id: 1, question: 'Why does WHERE execute before GROUP BY?', answer: 'WHERE filters individual source table rows before they are formed into groups.' }]
+        },
+        assignments: SAMPLE_PROBLEMS.slice(0, 7),
+        additionalProblems: SAMPLE_BONUS_PROBLEMS
+      },
+      {
+        id: 'c1100001-0000-4000-8000-000000000006',
+        dayNumber: 'Class 06',
+        title: 'SQL Joins & Multi-Table Analysis',
+        dateFormatted: 'Mon, 13 Apr 2026',
+        time: '9:00 PM Mon, 13 Apr',
+        mandatory: true,
+        status: 'completed',
+        lecturePercent: '100.0%',
+        assignmentCount: '8/8',
+        additionalProblemsCount: '6/6',
+        attendance: '100%',
+        problemsSolved: '14 / 14',
+        weekNumber: 2,
+        order: 6,
+        topicHeadlines: [
+          'INNER JOIN',
+          'LEFT JOIN',
+          'RIGHT JOIN',
+          'FULL OUTER JOIN',
+          'SELF JOIN',
+          'CROSS JOIN',
+          'NON-EQUI JOIN',
+          'Joining Multiple Tables',
+          'UNION and UNION ALL'
+        ],
+        preRead: {
+          title: 'SQL Joins & Multi-Table Analysis',
+          readTime: '12 min read',
+          summary: 'Combine disparate relational entities using inner, left, outer, self, and cross joins, and combine result sets using UNION.',
+          keyPoints: [
+            'INNER JOIN',
+            'LEFT JOIN',
+            'RIGHT JOIN',
+            'FULL OUTER JOIN',
+            'SELF JOIN',
+            'CROSS JOIN',
+            'NON-EQUI JOIN',
+            'Joining Multiple Tables',
+            'UNION and UNION ALL'
+          ]
+        },
+        session: {
+          title: 'SQL Joins & Multi-Table Analysis',
+          time: '9:00 PM Mon, 13 Apr',
+          duration: '2h 30m',
+          attendanceCoins: 8,
+          archiveCoins: 3,
+          flashcards: [{ id: 1, question: 'What is the difference between UNION and UNION ALL?', answer: 'UNION removes duplicate rows across result sets, while UNION ALL retains all rows including duplicates.' }]
+        },
+        assignments: SAMPLE_PROBLEMS.slice(0, 8),
+        additionalProblems: SAMPLE_BONUS_PROBLEMS
+      },
+      {
+        id: 'c1100001-0000-4000-8000-000000000007',
+        dayNumber: 'Class 07',
+        title: 'Advanced SQL – Subqueries, CTEs, Views & Window Functions',
+        dateFormatted: 'Wed, 15 Apr 2026',
+        time: '9:00 PM Wed, 15 Apr',
+        mandatory: true,
+        status: 'completed',
+        lecturePercent: '100.0%',
+        assignmentCount: '9/9',
+        additionalProblemsCount: '8/8',
+        attendance: '100%',
+        problemsSolved: '17 / 17',
+        weekNumber: 3,
+        order: 7,
+        topicHeadlines: [
+          'Subqueries and Nested Queries',
+          'Derived Tables',
+          'CTEs',
+          'Views',
+          'Window Functions',
+          'OVER and PARTITION BY',
+          'ROW_NUMBER, RANK and DENSE_RANK',
+          'NTILE',
+          'LEAD and LAG',
+          'Running and Moving Calculations',
+          'Window Frames: ROWS and RANGE',
+          'FIRST_VALUE, LAST_VALUE and NTH_VALUE'
+        ],
+        preRead: {
+          title: 'Advanced SQL – Subqueries, CTEs, Views & Window Functions',
+          readTime: '15 min read',
+          summary: 'Master modular CTEs, subqueries, persistent views, and analytical window functions with PARTITION BY and ORDER BY frames.',
+          keyPoints: [
+            'Subqueries and Nested Queries',
+            'Derived Tables',
+            'CTEs',
+            'Views',
+            'Window Functions',
+            'OVER and PARTITION BY',
+            'ROW_NUMBER, RANK and DENSE_RANK',
+            'NTILE',
+            'LEAD and LAG',
+            'Running and Moving Calculations',
+            'Window Frames: ROWS and RANGE',
+            'FIRST_VALUE, LAST_VALUE and NTH_VALUE'
+          ]
+        },
+        session: {
+          title: 'Advanced SQL – Subqueries, CTEs, Views & Window Functions',
+          time: '9:00 PM Wed, 15 Apr',
+          duration: '2h 45m',
+          attendanceCoins: 8,
+          archiveCoins: 3,
+          flashcards: [{ id: 1, question: 'What is the role of PARTITION BY in a window function?', answer: 'It divides rows into distinct groups upon which the window calculation is independently evaluated.' }]
+        },
+        assignments: SAMPLE_PROBLEMS,
+        additionalProblems: SAMPLE_BONUS_PROBLEMS
+      },
+      {
+        id: 'c1100001-0000-4000-8000-000000000008',
+        dayNumber: 'Class 08',
+        title: 'SQL Minor Project + GenAI',
+        dateFormatted: 'Fri, 17 Apr 2026',
+        time: '9:00 PM Fri, 17 Apr',
+        mandatory: true,
+        status: 'completed',
+        lecturePercent: '100.0%',
+        assignmentCount: '1/1',
+        additionalProblemsCount: '0/0',
+        attendance: '100%',
+        problemsSolved: '1 / 1',
+        weekNumber: 3,
+        order: 8,
+        isMinorProject: true,
+        isGenAI: true,
+        topicHeadlines: [
+          'Business Problem Understanding',
+          'Dataset Exploration',
+          'SQL-Based Data Analysis',
+          'Business Insights',
+          'Recommendations',
+          'GenAI-Assisted SQL Workflow',
+          'Project Presentation'
+        ],
+        preRead: {
+          title: 'SQL Minor Project + GenAI',
+          readTime: '15 min read',
+          summary: 'End-to-end analytical case study: leverage AI-augmented SQL queries to extract data, derive business recommendations, and present findings.',
+          keyPoints: [
+            'Business Problem Understanding',
+            'Dataset Exploration',
+            'SQL-Based Data Analysis',
+            'Business Insights',
+            'Recommendations',
+            'GenAI-Assisted SQL Workflow',
+            'Project Presentation'
+          ]
+        },
+        session: {
+          title: 'SQL Minor Project + GenAI',
+          time: '9:00 PM Fri, 17 Apr',
+          duration: '3h 00m',
+          attendanceCoins: 12,
+          archiveCoins: 5,
+          flashcards: [{ id: 1, question: 'How can GenAI accelerate the SQL analytical lifecycle?', answer: 'By generating boilerplate CTE queries, explaining cryptic error messages, and translating natural business questions into structured queries.' }]
+        },
+        assignments: SAMPLE_PROBLEMS.slice(0, 1),
+        additionalProblems: []
       }
     ]
   },
@@ -1270,6 +1562,11 @@ interface BackendCurriculumResponse {
       postRead?: any;
       status: string;
       hasAttended: boolean;
+      weekNumber?: number;
+      order?: number;
+      topicHeadlines?: string[];
+      isMinorProject?: boolean;
+      isGenAI?: boolean;
       assignment?: {
         id: string;
         title: string;
@@ -1458,7 +1755,7 @@ export const CoreCurriculumView: React.FC<CoreCurriculumViewProps> = ({
           moduleNumber: m.order || index + 1,
           phase: phaseNum,
           title: m.title,
-          durationWeeks: `${m.totalClasses} Lectures`,
+          durationWeeks: m.title.toLowerCase().includes('sql') ? '3 Weeks' : `${m.totalClasses} Lectures`,
           status: m.progressPercent === 100 ? 'completed' : m.progressPercent > 0 ? 'in-progress' : 'upcoming',
           mockInterviewStatus: index === 0 ? 'Foundation Assessment' : 'Phase Evaluation',
           attendancePercent: attRate,
@@ -1477,6 +1774,11 @@ export const CoreCurriculumView: React.FC<CoreCurriculumViewProps> = ({
             attendance: c.hasAttended ? 'Present' : 'Absent',
             problemsSolved: c.assignment ? `${c.assignment.solved}` : '0',
             recordingDuration: c.duration || '1h 30m',
+            weekNumber: c.weekNumber || (c.preRead && c.preRead.weekNumber) || undefined,
+            order: c.order || cIdx + 1,
+            topicHeadlines: c.topicHeadlines || (c.preRead && c.preRead.topicHeadlines) || undefined,
+            isMinorProject: c.isMinorProject || (c.preRead && c.preRead.isMinorProject) || false,
+            isGenAI: c.isGenAI || (c.preRead && c.preRead.isGenAI) || false,
             preRead: {
               title: c.preRead?.objectives ? `Pre-read: ${c.title}` : `Preparation for ${c.title}`,
               readTime: '15 mins read',
@@ -1543,11 +1845,16 @@ export const CoreCurriculumView: React.FC<CoreCurriculumViewProps> = ({
               title: detailed.title || prev.session.title,
               time: `${detailed.date} (${detailed.startTime} - ${detailed.endTime})`,
             },
+            topicHeadlines: (detailed.preRead && detailed.preRead.topicHeadlines) || prev.topicHeadlines,
+            isMinorProject: (detailed.preRead && detailed.preRead.isMinorProject) ?? prev.isMinorProject,
+            isGenAI: (detailed.preRead && detailed.preRead.isGenAI) ?? prev.isGenAI,
             preRead: detailed.preRead ? {
               title: `Pre-read: ${detailed.title}`,
               readTime: '15 mins read',
               summary: detailed.description || 'Review foundational concepts before the lecture.',
-              keyPoints: detailed.preRead.objectives || prev.preRead.keyPoints,
+              keyPoints: (detailed.preRead && detailed.preRead.topicHeadlines && detailed.preRead.topicHeadlines.length > 0)
+                ? detailed.preRead.topicHeadlines
+                : (detailed.preRead.objectives || prev.preRead.keyPoints),
               codeExample: undefined
             } : prev.preRead,
             assignments: (detailed.assignments && detailed.assignments.length > 0)
@@ -1978,21 +2285,45 @@ export const CoreCurriculumView: React.FC<CoreCurriculumViewProps> = ({
               {/* Day-by-Day Classes List */}
               <div className="divide-y divide-[#F1F5F9]">
                 {currentModule?.classes && currentModule.classes.length > 0 ? (
-                  currentModule.classes.map((cls) => (
-                    <div
-                      key={cls.id}
-                      onClick={() => handleOpenClass(cls)}
-                      className="p-4 sm:p-5 hover:bg-[#F8FAFC] transition-colors flex flex-col md:flex-row md:items-center justify-between gap-3 sm:gap-4 cursor-pointer group"
-                    >
-                      {/* Left: Day & Title */}
-                      <div className="flex items-start sm:items-center gap-3.5 min-w-0">
-                        <span className="text-xs font-mono font-bold text-[#64748B] whitespace-nowrap shrink-0 min-w-[100px]">
-                          {cls.dayNumber}
-                        </span>
-                        <h4 className="text-xs sm:text-sm font-semibold text-[#0F172A] group-hover:text-[#2563EB] transition-colors leading-relaxed">
-                          {cls.title}
-                        </h4>
-                      </div>
+                  currentModule.classes.map((cls, idx) => {
+                    const isSqlModule = currentModule.title.toLowerCase().includes('sql');
+                    const currentWeek = cls.weekNumber || (idx < 3 ? 1 : idx < 6 ? 2 : 3);
+                    const prevWeek = idx > 0 ? (currentModule.classes[idx - 1].weekNumber || (idx - 1 < 3 ? 1 : idx - 1 < 6 ? 2 : 3)) : null;
+                    const showWeekHeader = isSqlModule && (idx === 0 || currentWeek !== prevWeek);
+
+                    return (
+                      <React.Fragment key={cls.id}>
+                        {showWeekHeader && (
+                          <div className="bg-[#F8FAFC] px-5 py-2.5 border-y border-[#E2E8F0] flex items-center justify-between">
+                            <span className="text-xs font-bold text-[#334155] uppercase tracking-wider flex items-center gap-2">
+                              <Calendar className="w-3.5 h-3.5 text-[#2563EB]" />
+                              Week {currentWeek}
+                            </span>
+                            <span className="text-[11px] font-mono text-[#64748B]">
+                              {currentWeek === 1 ? 'Classes 01 - 03' : currentWeek === 2 ? 'Classes 04 - 06' : 'Classes 07 - 08'}
+                            </span>
+                          </div>
+                        )}
+                        <div
+                          onClick={() => handleOpenClass(cls)}
+                          className="p-4 sm:p-5 hover:bg-[#F8FAFC] transition-colors flex flex-col md:flex-row md:items-center justify-between gap-3 sm:gap-4 cursor-pointer group"
+                        >
+                          {/* Left: Day & Title */}
+                          <div className="flex items-start sm:items-center gap-3.5 min-w-0">
+                            <span className="text-xs font-mono font-bold text-[#64748B] whitespace-nowrap shrink-0 min-w-[100px]">
+                              {cls.dayNumber}
+                            </span>
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <h4 className="text-xs sm:text-sm font-semibold text-[#0F172A] group-hover:text-[#2563EB] transition-colors leading-relaxed">
+                                {cls.title}
+                              </h4>
+                              {(cls.isMinorProject || cls.title.toLowerCase().includes('minor project')) && (
+                                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-purple-100 text-purple-700 border border-purple-200 shadow-2xs">
+                                  Minor Project + GenAI
+                                </span>
+                              )}
+                            </div>
+                          </div>
 
                       {/* Right: Telemetry (Lecture %, Assignment, Additional Problem, Arrow) */}
                       <div className="flex items-center gap-3 sm:gap-6 shrink-0 self-end md:self-auto text-xs">
@@ -2023,7 +2354,9 @@ export const CoreCurriculumView: React.FC<CoreCurriculumViewProps> = ({
                         </div>
                       </div>
                     </div>
-                  ))
+                      </React.Fragment>
+                    );
+                  })
                 ) : (
                   <div className="p-12 text-center space-y-3">
                     <div className="w-10 h-10 rounded-xl bg-blue-50 text-[#2563EB] flex items-center justify-center mx-auto">
@@ -2218,16 +2551,32 @@ export const CoreCurriculumView: React.FC<CoreCurriculumViewProps> = ({
                   <p>{activeClass.preRead.summary}</p>
                 </div>
 
+                {/* Topic Headlines List using existing card & badge UI pattern */}
                 <div className="space-y-3">
-                  <h4 className="text-sm font-bold text-[#0F172A]">Key Concepts to Master Before Lecture:</h4>
-                  <ul className="space-y-2">
-                    {activeClass.preRead.keyPoints.map((point, idx) => (
-                      <li key={idx} className="flex items-start gap-2.5 text-xs sm:text-sm text-[#334155]">
-                        <CheckCircle className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
-                        <span>{point}</span>
-                      </li>
+                  <div className="flex items-center justify-between">
+                    <h4 className="text-sm font-bold text-[#0F172A] flex items-center gap-2">
+                      <BookOpen className="w-4 h-4 text-[#2563EB]" />
+                      <span>Topic Headlines ({(activeClass.topicHeadlines || activeClass.preRead.keyPoints).length})</span>
+                    </h4>
+                    {activeClass.isMinorProject && (
+                      <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-purple-100 text-purple-700 border border-purple-200">
+                        Minor Project + GenAI
+                      </span>
+                    )}
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                    {(activeClass.topicHeadlines || activeClass.preRead.keyPoints).map((point, idx) => (
+                      <div 
+                        key={idx} 
+                        className="p-3 rounded-xl bg-white border border-[#E2E8F0] hover:border-blue-300 transition-colors flex items-center gap-2.5 text-xs text-[#1E293B] shadow-2xs"
+                      >
+                        <span className="w-5 h-5 rounded-md bg-blue-50 text-[#2563EB] font-bold font-mono text-[10px] flex items-center justify-center shrink-0 border border-blue-100">
+                          {String(idx + 1).padStart(2, '0')}
+                        </span>
+                        <span className="font-medium leading-snug">{point}</span>
+                      </div>
                     ))}
-                  </ul>
+                  </div>
                 </div>
 
                 {activeClass.preRead.codeExample && (

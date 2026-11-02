@@ -308,38 +308,29 @@ export const StudentDashboardPage: React.FC<StudentDashboardPageProps> = ({
     setExpandedCardIds([]);
   };
 
-  // 4-Week, 12-Class Structure for Module 1: SQL
+  // 3-Week, 8-Class Structure for Module 1: SQL
   const sqlWeeklyStructure: SqlWeeklyStructure[] = [
     {
       weekTitle: 'WEEK 1 — SQL FOUNDATIONS',
       classes: [
         { id: 1, title: 'Database Fundamentals & BigQuery Setup' },
-        { id: 2, title: 'SQL Basics — Extracting Data' },
+        { id: 2, title: 'SQL Basics & Data Extraction' },
         { id: 3, title: 'Filtering & Conditional Logic' },
       ]
     },
     {
-      weekTitle: 'WEEK 2 — DATA ANALYSIS WITH SQL',
+      weekTitle: 'WEEK 2 — FUNCTIONS, AGGREGATIONS & JOINS',
       classes: [
-        { id: 4, title: 'SQL Functions & Data Cleaning' },
-        { id: 5, title: 'Aggregate Functions & GROUP BY' },
-        { id: 6, title: 'Date Functions & Business Analysis' },
+        { id: 4, title: 'SQL Functions & Data Aggregation' },
+        { id: 5, title: 'GROUP BY, HAVING & Query Execution' },
+        { id: 6, title: 'SQL Joins & Multi-Table Analysis' },
       ]
     },
     {
-      weekTitle: 'WEEK 3 — INTERMEDIATE TO ADVANCED SQL',
+      weekTitle: 'WEEK 3 — ADVANCED SQL & MINOR PROJECT + GENAI',
       classes: [
-        { id: 7, title: 'Subqueries & Nested Queries' },
-        { id: 8, title: 'SQL Joins — Combining Multiple Tables' },
-        { id: 9, title: 'Advanced Joins & Set Operations' },
-      ]
-    },
-    {
-      weekTitle: 'WEEK 4 — ADVANCED SQL & PRACTICAL APPLICATION',
-      classes: [
-        { id: 10, title: 'Window Functions, CTEs & Views' },
-        { id: 11, title: 'SQL Minor Project — Business Case Study' },
-        { id: 12, title: 'GenAI with SQL — Learn, Debug & Analyze' },
+        { id: 7, title: 'Advanced SQL – Subqueries, CTEs, Views & Window Functions' },
+        { id: 8, title: 'SQL Minor Project + GenAI' },
       ]
     }
   ];
@@ -567,7 +558,7 @@ export const StudentDashboardPage: React.FC<StudentDashboardPageProps> = ({
     {
       id: 1,
       title: 'Module 1: SQL',
-      progressText: '4 Weeks · 12 Classes',
+      progressText: '3 Weeks · 8 Classes',
       percent: 25,
       status: 'in-progress',
       sqlWeeks: sqlWeeklyStructure,
@@ -588,7 +579,7 @@ export const StudentDashboardPage: React.FC<StudentDashboardPageProps> = ({
         },
         {
           id: 2,
-          topic: 'SQL Basics — Extracting Data',
+          topic: 'SQL Basics & Data Extraction',
           date: 'WEEK 1',
           day: '(Class 2)',
           course: 'SQL',
@@ -616,7 +607,7 @@ export const StudentDashboardPage: React.FC<StudentDashboardPageProps> = ({
         },
         {
           id: 4,
-          topic: 'SQL Functions & Data Cleaning',
+          topic: 'SQL Functions & Data Aggregation',
           date: 'WEEK 2',
           day: '(Class 4)',
           course: 'SQL',
@@ -630,7 +621,7 @@ export const StudentDashboardPage: React.FC<StudentDashboardPageProps> = ({
         },
         {
           id: 5,
-          topic: 'Aggregate Functions & GROUP BY',
+          topic: 'GROUP BY, HAVING & Query Execution',
           date: 'WEEK 2',
           day: '(Class 5)',
           course: 'SQL',
@@ -644,7 +635,7 @@ export const StudentDashboardPage: React.FC<StudentDashboardPageProps> = ({
         },
         {
           id: 6,
-          topic: 'Date Functions & Business Analysis',
+          topic: 'SQL Joins & Multi-Table Analysis',
           date: 'WEEK 2',
           day: '(Class 6)',
           course: 'SQL',
@@ -658,7 +649,7 @@ export const StudentDashboardPage: React.FC<StudentDashboardPageProps> = ({
         },
         {
           id: 7,
-          topic: 'Subqueries & Nested Queries',
+          topic: 'Advanced SQL – Subqueries, CTEs, Views & Window Functions',
           date: 'WEEK 3',
           day: '(Class 7)',
           course: 'SQL',
@@ -672,67 +663,11 @@ export const StudentDashboardPage: React.FC<StudentDashboardPageProps> = ({
         },
         {
           id: 8,
-          topic: 'SQL Joins — Combining Multiple Tables',
+          topic: 'SQL Minor Project + GenAI',
           date: 'WEEK 3',
           day: '(Class 8)',
           course: 'SQL',
-          courseType: 'python',
-          assignment: '0 / 1',
-          assignmentCompleted: false,
-          additionalProblem: '0 / 0',
-          lectureAttendance: '0%',
-          attendanceRatio: '0 / 1',
-          attendanceFull: false
-        },
-        {
-          id: 9,
-          topic: 'Advanced Joins & Set Operations',
-          date: 'WEEK 3',
-          day: '(Class 9)',
-          course: 'SQL',
-          courseType: 'python',
-          assignment: '0 / 1',
-          assignmentCompleted: false,
-          additionalProblem: '0 / 0',
-          lectureAttendance: '0%',
-          attendanceRatio: '0 / 1',
-          attendanceFull: false
-        },
-        {
-          id: 10,
-          topic: 'Window Functions, CTEs & Views',
-          date: 'WEEK 4',
-          day: '(Class 10)',
-          course: 'SQL',
-          courseType: 'python',
-          assignment: '0 / 1',
-          assignmentCompleted: false,
-          additionalProblem: '0 / 0',
-          lectureAttendance: '0%',
-          attendanceRatio: '0 / 1',
-          attendanceFull: false
-        },
-        {
-          id: 11,
-          topic: 'SQL Minor Project — Business Case Study',
-          date: 'WEEK 4',
-          day: '(Class 11)',
-          course: 'SQL',
           courseType: 'ml',
-          assignment: '0 / 1',
-          assignmentCompleted: false,
-          additionalProblem: '0 / 0',
-          lectureAttendance: '0%',
-          attendanceRatio: '0 / 1',
-          attendanceFull: false
-        },
-        {
-          id: 12,
-          topic: 'GenAI with SQL — Learn, Debug & Analyze',
-          date: 'WEEK 4',
-          day: '(Class 12)',
-          course: 'SQL',
-          courseType: 'python',
           assignment: '0 / 1',
           assignmentCompleted: false,
           additionalProblem: '0 / 0',

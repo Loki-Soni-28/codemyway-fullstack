@@ -41,10 +41,11 @@ export const Header: React.FC<HeaderProps> = ({
     },
     {
       label: 'Mentors',
-      isActive: false,
+      isActive: currentRoute === 'mentors',
       onSelect: () => {
         setMobileMenuOpen(false);
         onOpenMentors();
+        window.scrollTo({ top: 0, behavior: 'smooth' });
       },
     },
     { label: 'About Us', isActive: currentRoute === 'about', onSelect: () => handleNav('about') },

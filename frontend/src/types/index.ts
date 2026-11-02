@@ -1,4 +1,4 @@
-export type NavigationRoute = 'home' | 'course-details' | 'skill-store' | 'student-dashboard' | 'login' | 'faculty-reviews' | 'admin-dashboard' | 'privacy' | 'terms' | 'refund' | 'contact' | 'about';
+export type NavigationRoute = 'home' | 'course-details' | 'skill-store' | 'student-dashboard' | 'login' | 'faculty-reviews' | 'admin-dashboard' | 'privacy' | 'terms' | 'refund' | 'contact' | 'about' | 'mentors';
 
 export type UserRole = 'STUDENT' | 'ADMIN' | 'INSTRUCTOR' | 'MENTOR';
 

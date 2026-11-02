@@ -21,13 +21,10 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: 'Invalid Google sign-in' }, { status: 401 });
       }
 
-      // The typed email must match the Google account. Mobile is only needed (and only
-      // collected) when a new account is created at sign-up.
+      // The email comes from the verified Google account; if a client still sends one it must
+      // match. Mobile is only needed (and only collected) when a new account is created at sign-up.
       const typedEmail = typeof body.email === 'string' ? body.email.trim().toLowerCase() : '';
-      if (!typedEmail) {
-        return NextResponse.json({ error: 'Email is required' }, { status: 400 });
-      }
-      if (typedEmail !== googleUser.email) {
+      if (typedEmail && typedEmail !== googleUser.email) {
         return NextResponse.json({ error: `The Google account (${googleUser.email}) doesn't match the email you entered.` }, { status: 400 });
       }
 

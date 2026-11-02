@@ -21,6 +21,7 @@ import { useOffer } from './offer';
 import { api, ApiError } from './api';
 import { PolicyPage, PolicyKind } from './components/legal/PolicyPage';
 import { AboutPage } from './components/about/AboutPage';
+import { MentorCarousel } from './components/common/MentorCarousel';
 import { NotEnrolledPage } from './components/dashboard/NotEnrolledPage';
 
 const POLICY_PATHS: Record<PolicyKind, string> = {
@@ -40,6 +41,7 @@ export default function App() {
     if (path.includes('/faculty')) return 'faculty-reviews';
     if (path.includes('/login')) return 'login';
     if (path === '/about') return 'about';
+    if (path === '/mentors') return 'mentors';
     for (const [route, routePath] of Object.entries(POLICY_PATHS)) {
       if (path === routePath) return route as NavigationRoute;
     }
@@ -208,6 +210,7 @@ export default function App() {
     else if (route === 'login') targetPath = '/login';
     else if (route === 'faculty-reviews') targetPath = '/faculty';
     else if (route === 'about') targetPath = '/about';
+    else if (route === 'mentors') targetPath = '/mentors';
     else if (route in POLICY_PATHS) targetPath = POLICY_PATHS[route as PolicyKind];
 
     if (window.location.pathname !== targetPath) {
@@ -226,8 +229,9 @@ export default function App() {
 
   // Logged in but not enrolled: show the public site chrome with a prompt instead of the dashboard
   const dashboardBlocked = currentRoute === 'student-dashboard' && !!currentUser && !currentUser.enrolled;
+  // The sign-in screen (also shown in place of a protected page when logged out) keeps the site nav on top
   const showPublicChrome =
-    (currentRoute !== 'student-dashboard' && currentRoute !== 'login' && currentRoute !== 'faculty-reviews') || dashboardBlocked;
+    (currentRoute !== 'student-dashboard' && currentRoute !== 'faculty-reviews') || dashboardBlocked || !currentUser;
 
   return (
     <div className="min-h-screen flex flex-col bg-[#08070B] text-white selection:bg-[#9B59B6]/40 selection:text-[#F1C40F]">
@@ -244,10 +248,7 @@ export default function App() {
           )}
           <Header
             currentRoute={currentRoute}
-            onOpenMentors={() => {
-              handleRouteChange('home');
-              setTimeout(() => document.getElementById('mentors')?.scrollIntoView({ behavior: 'smooth' }), 150);
-            }}
+            onOpenMentors={() => handleRouteChange('mentors')}
             onRouteChange={handleRouteChange}
             currentUser={currentUser}
             onLogout={handleLogout}
@@ -377,6 +378,10 @@ export default function App() {
               )
             )}
 
+            {currentRoute === 'mentors' && (
+              <div className="py-10 sm:py-14"><MentorCarousel /></div>
+            )}
+
             {currentRoute === 'about' && (
               <AboutPage onRouteChange={handleRouteChange} onOpenMentorModal={() => setIsMentorModalOpen(true)} />
             )}
@@ -468,7 +473,7 @@ export default function App() {
       )}
 
       {/* Floating 30% OFF Batch Offer Pill to Re-open anytime (Never shown on Student Dashboard) */}
-      {offerActive && !isDiscountOpen && currentRoute !== 'student-dashboard' && (
+      {offerActive && !isDiscountOpen && currentRoute !== 'student-dashboard' && currentRoute !== 'course-details' && (
         <button
           onClick={() => setIsDiscountOpen(true)}
           className="fixed bottom-16 sm:bottom-20 right-6 z-40 px-4 py-2.5 rounded-full bg-gradient-to-r from-[#9B59B6] to-[#7A3E9D] hover:from-[#A86AC3] hover:to-[#8C47B3] text-white text-xs font-bold border border-[#D1CADB]/30 flex items-center gap-2 hover:scale-105 active:scale-95 transition-all cursor-pointer group"

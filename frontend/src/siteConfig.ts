@@ -1,11 +1,14 @@
 // Site-wide content you maintain by hand. Confirm everything here is accurate before going live.
 
-// Scrolling company-name strip (home and About pages). Names are shown as plain text, not
-// logos. The heading says your mentors and teachers come from these companies, so every name
+// Scrolling company-name strip (home and About pages). Names with a logo file in
+// CompanyMarquee.tsx show the logo; the rest show a coloured name badge. The heading says your mentors and teachers come from these companies, so every name
 // must be one where a current or former mentor/teacher really worked, and you should be
 // comfortable naming them. Set `names` to [] to hide the strip.
 export const COMPANY_STRIP = {
-  heading: 'Our mentors and teachers come from',
+  kicker: 'Real industry experience',
+  heading: "Learn from Professionals Who've Worked in the Industry.",
+  subheading: 'Gain practical insights from mentors with professional experience across leading technology, consulting, and analytics organizations.',
+  disclaimer: 'Organizations where our mentors have gained professional experience. Company names do not imply official partnerships or endorsements.',
   names: [
     'Amazon',
     'Google',
@@ -15,7 +18,7 @@ export const COMPANY_STRIP = {
     'TCS',
     'SAP',
     'Visa',
-    'Mindtree',
+    'LTIMindtree',
     'Mphasis',
     'Tiger Analytics',
   ],

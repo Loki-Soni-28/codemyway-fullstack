@@ -50,10 +50,10 @@ export const LearningDifference: React.FC = () => (
     <div className="text-center max-w-2xl mx-auto mb-8">
       <span className="text-xs font-semibold text-[#9B59B6] uppercase tracking-wider">The CodeMyWay Advantage</span>
       <h2 id="learning-difference-title" className="text-3xl sm:text-4xl font-extrabold text-white mt-1 font-['Sora']">
-        Don't Just Watch. Learn, Build & Apply.
+        What Makes the CodeMyWay Experience Different?
       </h2>
       <p className="text-sm text-[#D1CADB] mt-2">
-        Go beyond watching tutorials. Experience guided learning, meaningful practice, personalized feedback and career-focused preparation.
+        Discover a learning experience built around live instruction, personalized mentorship, practical guidance, and career-focused support.
       </p>
     </div>
 

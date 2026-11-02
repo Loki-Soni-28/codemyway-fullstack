@@ -5,7 +5,7 @@ import { prisma } from '@/lib/db';
 // GET: Student fetches their check-in assignments, scheduled sessions, and published feedback
 export async function GET() {
   const user = await getSessionUser();
-  if (!user || user.role !== 'STUDENT') {
+  if (!user || (user.role !== 'STUDENT' && user.role !== 'ADMIN')) {
     return NextResponse.json({ error: 'Unauthorized: Student role required' }, { status: 401 });
   }
 

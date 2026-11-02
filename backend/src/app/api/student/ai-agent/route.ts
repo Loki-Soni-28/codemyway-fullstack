@@ -6,7 +6,7 @@ import { generateContent } from '@/lib/gemini';
 export async function POST(req: NextRequest) {
   try {
     const user = await getSessionUser();
-    if (!user || user.role !== 'STUDENT') {
+    if (!user || (user.role !== 'STUDENT' && user.role !== 'ADMIN')) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
     const { message } = await req.json();

@@ -5,7 +5,7 @@ import { logSubmissionToBigQuery } from '@/lib/bigquery';
 
 export async function POST(req: NextRequest) {
   const user = await getSessionUser();
-  if (!user || user.role !== 'STUDENT') {
+  if (!user || (user.role !== 'STUDENT' && user.role !== 'ADMIN')) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 

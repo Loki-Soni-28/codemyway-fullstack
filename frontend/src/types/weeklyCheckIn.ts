@@ -31,6 +31,7 @@ export interface WeeklyCheckInFeedback {
 export interface WeeklyCheckInStudentAssignment {
   id: string;
   checkInId: string;
+  checkIn: WeeklyCheckIn;
   studentId: string;
   teacherId: string;
   status: CheckInStudentStatus;

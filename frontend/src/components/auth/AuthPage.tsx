@@ -132,7 +132,6 @@ export const AuthPage: React.FC<AuthPageProps> = ({
 
   // Email + mobile are both required; the Google account must match the email.
   const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
   const [mobile, setMobile] = useState('');
   const [fieldError, setFieldError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -143,36 +142,6 @@ export const AuthPage: React.FC<AuthPageProps> = ({
     // Mobile is collected at sign-up only.
     if (authMode === 'register' && !/^[6-9][0-9]{9}$/.test(mobile)) return 'Please enter a valid 10-digit mobile number.';
     return '';
-  };
-
-  // Password / Credentials Sign-In
-  const handleCredentialsLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setGoogleError('');
-    setFieldError('');
-
-    if (!email.trim() || !password) {
-      setFieldError('Email and password are required.');
-      return;
-    }
-
-    setIsSubmitting(true);
-    try {
-      const res = await api<{ user: ApiUser }>('/auth/login', {
-        method: 'POST',
-        body: JSON.stringify({
-          type: 'credentials',
-          email: email.trim(),
-          password
-        }),
-      });
-      onLoginSuccess(toStudentUser(res.user));
-      onRouteChange('student-dashboard');
-    } catch (err) {
-      setFieldError(err instanceof Error ? err.message : 'Invalid email or password.');
-    } finally {
-      setIsSubmitting(false);
-    }
   };
 
   // Google sign-in (works for both existing and new students; new ones are created on first login)
@@ -194,8 +163,8 @@ export const AuthPage: React.FC<AuthPageProps> = ({
           ...(authMode === 'register' && { phone: mobile }),
         }),
       });
+      // App routes by role (student dashboard or faculty/admin) once the user is set.
       onLoginSuccess(toStudentUser(res.user));
-      onRouteChange('student-dashboard');
     } catch (err) {
       setGoogleError(err instanceof Error ? err.message : 'Google sign-in failed. Please try again.');
     } finally {
@@ -243,50 +212,6 @@ export const AuthPage: React.FC<AuthPageProps> = ({
           />
         </div>
       </div>
-      )}
-
-      {authMode === 'login' && (
-        <form onSubmit={handleCredentialsLogin} className="space-y-3 pt-1">
-          <div className="space-y-1">
-            <label className="text-xs font-semibold text-[#CBD5E1] block">Password <span className="text-rose-400">*</span></label>
-            <div className="relative">
-              <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-[#64748B]">
-                <Lock className="w-4 h-4" />
-              </div>
-              <input
-                type="password"
-                value={password}
-                onChange={(e) => { setPassword(e.target.value); setFieldError(''); }}
-                placeholder="Enter your student password (e.g. password123)"
-                className={inputCls}
-              />
-            </div>
-          </div>
-
-          <button
-            type="submit"
-            disabled={isSubmitting || !email.trim() || !password}
-            className="w-full py-2.5 rounded-xl bg-purple-600 hover:bg-purple-500 disabled:opacity-40 disabled:cursor-not-allowed text-white font-bold text-xs sm:text-sm shadow-md shadow-purple-600/30 transition-all cursor-pointer flex items-center justify-center gap-2"
-          >
-            {isSubmitting ? (
-              <>
-                <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                <span>Signing in...</span>
-              </>
-            ) : (
-              <>
-                <span>Login with Email & Password</span>
-                <ArrowRight className="w-4 h-4" />
-              </>
-            )}
-          </button>
-
-          <div className="flex items-center gap-3 pt-2">
-            <div className="h-px bg-[#2B233F] flex-1" />
-            <span className="text-[10px] text-[#64748B] uppercase font-bold tracking-wider">or continue with</span>
-            <div className="h-px bg-[#2B233F] flex-1" />
-          </div>
-        </form>
       )}
 
       {/* The Google button only works once both fields are valid; clicking early explains why. */}

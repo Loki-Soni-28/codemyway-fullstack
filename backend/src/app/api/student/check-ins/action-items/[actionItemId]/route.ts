@@ -9,7 +9,7 @@ interface RouteContext {
 // PATCH: Student marks an assigned action item complete or reopens it
 export async function PATCH(req: NextRequest, context: RouteContext) {
   const user = await getSessionUser();
-  if (!user || user.role !== 'STUDENT') {
+  if (!user || (user.role !== 'STUDENT' && user.role !== 'ADMIN')) {
     return NextResponse.json({ error: 'Unauthorized: Student role required' }, { status: 401 });
   }
 

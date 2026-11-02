@@ -7,7 +7,7 @@ export async function GET(
   { params }: { params: Promise<{ classId: string }> }
 ) {
   const user = await getSessionUser();
-  if (!user || user.role !== 'STUDENT') {
+  if (!user || (user.role !== 'STUDENT' && user.role !== 'ADMIN')) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 

@@ -32,6 +32,7 @@ import { AdminWeeklyCheckInView } from './AdminWeeklyCheckInView';
 interface FacultyReviewViewProps {
   currentUser: StudentUser;
   onLogout: () => void;
+  onOpenStudentPortal?: () => void;
   onNavigateHome: () => void;
 }
 
@@ -87,6 +88,7 @@ interface FacultySubmission {
 export const FacultyReviewView: React.FC<FacultyReviewViewProps> = ({
   currentUser,
   onLogout,
+  onOpenStudentPortal,
   onNavigateHome
 }) => {
   const [submissions, setSubmissions] = useState<FacultySubmission[]>([]);
@@ -321,6 +323,15 @@ export const FacultyReviewView: React.FC<FacultyReviewViewProps> = ({
               {currentUser.role}: <strong className="text-white">{currentUser.fullName}</strong>
             </span>
           </div>
+
+          {onOpenStudentPortal && (
+            <button
+              onClick={onOpenStudentPortal}
+              className="px-3 py-2 rounded-xl text-xs font-bold text-white bg-[#9B59B6]/30 hover:bg-[#9B59B6]/50 border border-[#9B59B6]/50 transition-colors cursor-pointer"
+            >
+              Student Portal
+            </button>
+          )}
 
           <button
             onClick={onLogout}

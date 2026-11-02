@@ -64,7 +64,10 @@ export default function App() {
         setCurrentUser(mappedUser);
 
         // Role-based route redirect
-        if (mappedUser.role === 'INSTRUCTOR' || mappedUser.role === 'MENTOR' || mappedUser.role === 'ADMIN') {
+        if (mappedUser.role === 'ADMIN') {
+          // Admins may also open the student portal, so only leave the login page.
+          setCurrentRoute((prev) => (prev === 'login' ? 'faculty-reviews' : prev));
+        } else if (mappedUser.role === 'INSTRUCTOR' || mappedUser.role === 'MENTOR') {
           setCurrentRoute((prev) => (prev === 'student-dashboard' || prev === 'login' ? 'faculty-reviews' : prev));
         } else if (mappedUser.role === 'STUDENT') {
           setCurrentRoute((prev) => (prev === 'faculty-reviews' ? 'student-dashboard' : prev));
@@ -93,12 +96,23 @@ export default function App() {
 
   const saveUser = (user: StudentUser) => setCurrentUser(user);
 
+  // Set when someone clicks Enroll while logged out, so checkout opens right after they log in.
+  const [pendingCheckout, setPendingCheckout] = useState<{ courseSlug: string; title: string } | null>(null);
+
   const handleLoginSuccess = (user: StudentUser) => {
     setCurrentUser(user);
-    if (user.role === 'INSTRUCTOR' || user.role === 'MENTOR' || user.role === 'ADMIN') {
-      setCurrentRoute('faculty-reviews');
+    // Someone who clicked Enroll before logging in goes to checkout. Admins too, so they can
+    // test payments; instructors and mentors go to their portal.
+    const wantsCheckout = !!pendingCheckout && (user.role === 'ADMIN' || (user.role === 'STUDENT' && !user.enrolled));
+    setPendingCheckout(null);
+    if (wantsCheckout) {
+      setCheckoutData(pendingCheckout!);
+      navigateTo('course-details');
+      setIsBuyNowOpen(true);
+    } else if (user.role === 'INSTRUCTOR' || user.role === 'MENTOR' || user.role === 'ADMIN') {
+      navigateTo('faculty-reviews');
     } else {
-      setCurrentRoute('student-dashboard');
+      navigateTo('student-dashboard');
     }
   };
 
@@ -178,16 +192,21 @@ export default function App() {
   // Handle route change with browser history update & student route protection
   const handleRouteChange = (route: NavigationRoute) => {
     // Student route protection: If trying to access student dashboard while not an authenticated STUDENT
-    if (route === 'student-dashboard' && (!currentUser?.isLoggedIn || currentUser.role !== 'STUDENT')) {
+    if (route === 'student-dashboard' && (!currentUser?.isLoggedIn || (currentUser.role !== 'STUDENT' && currentUser.role !== 'ADMIN'))) {
       route = 'login';
     }
+    navigateTo(route);
+  };
 
+  // Switch route and sync the URL. No auth check: callers (like login) may run before state updates.
+  const navigateTo = (route: NavigationRoute) => {
     setCurrentRoute(route);
     let targetPath = '/';
     if (route === 'course-details') targetPath = '/courses/data-analyst-genai';
     else if (route === 'skill-store') targetPath = '/skill-store';
     else if (route === 'student-dashboard') targetPath = '/student/dashboard';
     else if (route === 'login') targetPath = '/login';
+    else if (route === 'faculty-reviews') targetPath = '/faculty';
     else if (route === 'about') targetPath = '/about';
     else if (route in POLICY_PATHS) targetPath = POLICY_PATHS[route as PolicyKind];
 
@@ -295,6 +314,7 @@ export default function App() {
                 onOpenMentorModal={() => setIsMentorModalOpen(true)}
                 onOpenBuyNowModal={(details) => {
                   if (!currentUser) {
+                    setPendingCheckout(details ?? checkoutData);
                     handleRouteChange('login');
                     return;
                   }
@@ -327,7 +347,7 @@ export default function App() {
             )}
 
             {currentRoute === 'student-dashboard' && !dashboardBlocked && (
-              currentUser?.isLoggedIn && currentUser.role === 'STUDENT' ? (
+              currentUser?.isLoggedIn && (currentUser.role === 'STUDENT' || currentUser.role === 'ADMIN') ? (
                 <StudentDashboardPage
                   onRouteChange={handleRouteChange}
                   currentUser={currentUser}
@@ -347,6 +367,7 @@ export default function App() {
                   currentUser={currentUser}
                   onLogout={handleLogout}
                   onNavigateHome={() => handleRouteChange('home')}
+                  onOpenStudentPortal={currentUser.role === 'ADMIN' ? () => handleRouteChange('student-dashboard') : undefined}
                 />
               ) : (
                 <AuthPage
@@ -370,6 +391,16 @@ export default function App() {
           </>
         )}
       </main>
+
+      {/* Admin previewing the student portal: quick way back */}
+      {currentRoute === 'student-dashboard' && currentUser?.role === 'ADMIN' && (
+        <button
+          onClick={() => handleRouteChange('faculty-reviews')}
+          className="fixed bottom-4 left-4 z-50 px-4 py-2 rounded-full bg-[#9B59B6] hover:bg-[#8C47B3] text-white text-xs font-bold shadow-lg cursor-pointer"
+        >
+          ← Back to Admin view
+        </button>
+      )}
 
       {/* Footer - Only on public website pages */}
       {showPublicChrome && (
@@ -406,6 +437,7 @@ export default function App() {
           handleRouteChange('student-dashboard');
         }}
         onLoginRequired={() => {
+          setPendingCheckout(checkoutData);
           setIsBuyNowOpen(false);
           handleRouteChange('login');
         }}

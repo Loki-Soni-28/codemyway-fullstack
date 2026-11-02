@@ -47,6 +47,16 @@ interface StudentMentorViewProps {
   onOpenSupportModal?: () => void;
 }
 
+interface UiSlot {
+  id: string;
+  date: string;
+  dayOfWeek: string;
+  displayDate: string;
+  startTime: string;
+  endTime: string;
+  isBooked: boolean;
+}
+
 export const StudentMentorView: React.FC<StudentMentorViewProps> = ({
   studentEmail = '',
   studentName = 'Student'
@@ -69,6 +79,14 @@ export const StudentMentorView: React.FC<StudentMentorViewProps> = ({
   const [bookingTopic, setBookingTopic] = useState<string>('');
   const [bookingAgenda, setBookingAgenda] = useState<string>('');
   const [isSubmittingBooking, setIsSubmittingBooking] = useState<boolean>(false);
+
+  // Support query modal state
+  const [isQueryModalOpen, setIsQueryModalOpen] = useState<boolean>(false);
+  const [querySubject, setQuerySubject] = useState<string>('');
+  const [queryMessage, setQueryMessage] = useState<string>('');
+  const [queryCategory, setQueryCategory] = useState<MentorSupportQuery['category']>('Project Guidance');
+  const [isSubmittingQuery] = useState<boolean>(false);
+  const [bookingPlatform, setBookingPlatform] = useState<string>('CodeMyWay Live Room');
 
   // History Tab Filter
   const [historyFilter, setHistoryFilter] = useState<'all' | 'COMPLETED' | 'CANCELLED'>('all');
@@ -197,7 +215,7 @@ export const StudentMentorView: React.FC<StudentMentorViewProps> = ({
     email: dbMentor.email,
     totalSessionsMentored: 48,
     rating: 4.95,
-    availableSlots: (dbMentor.availableSlots || []).map((s: any) => ({
+    availableSlots: ((dbMentor.availableSlots || []) as any[]).map((s: any): UiSlot => ({
       id: s.id,
       date: s.date,
       dayOfWeek: new Date(s.date).toLocaleDateString('en-US', { weekday: 'long' }),
@@ -255,15 +273,15 @@ export const StudentMentorView: React.FC<StudentMentorViewProps> = ({
 
   // Real available dates & slots for assigned mentor
   const availableDates = assignedMentor 
-    ? Array.from(new Set(assignedMentor.availableSlots.map(s => s.date))).sort()
+    ? Array.from(new Set(assignedMentor.availableSlots.map((s: { date: string }) => s.date))).sort()
     : [];
 
   const slotsForSelectedDate = assignedMentor && selectedDate
-    ? assignedMentor.availableSlots.filter(s => s.date === selectedDate)
+    ? assignedMentor.availableSlots.filter((s: { date: string }) => s.date === selectedDate)
     : [];
 
   
-  const progressFeedback = null;
+  const progressFeedback = null as StudentProgressFeedback | null;
 
   const handleToggleActionItem = (_itemId: string) => {};
 
@@ -495,7 +513,6 @@ export const StudentMentorView: React.FC<StudentMentorViewProps> = ({
                 </button>
                 <a
                   href="#book-session"
-                  onClick={() => setSelectedMentorId(assignedMentor.id)}
                   className="px-3.5 py-1.5 rounded-lg bg-[#2563EB] hover:bg-blue-600 text-xs font-bold text-white shadow-sm transition-all cursor-pointer flex items-center gap-1.5"
                 >
                   <Calendar className="w-3.5 h-3.5" />
@@ -1081,19 +1098,19 @@ export const StudentMentorView: React.FC<StudentMentorViewProps> = ({
               All ({historicalSessions.length})
             </button>
             <button
-              onClick={() => setHistoryFilter('Completed')}
+              onClick={() => setHistoryFilter('COMPLETED')}
               className={`px-3 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
-                historyFilter === 'Completed' 
+                historyFilter === 'COMPLETED' 
                   ? 'bg-blue-600/30 text-blue-300 border border-blue-500/40 shadow-xs' 
                   : 'text-[#94A3B8] hover:text-white'
               }`}
             >
-              Completed ({historicalSessions.filter(s => s.status === 'Completed').length})
+              Completed ({historicalSessions.filter(s => s.status === 'COMPLETED').length})
             </button>
             <button
-              onClick={() => setHistoryFilter('Cancelled')}
+              onClick={() => setHistoryFilter('CANCELLED')}
               className={`px-3 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
-                historyFilter === 'Cancelled' 
+                historyFilter === 'CANCELLED' 
                   ? 'bg-rose-500/20 text-rose-300 border border-rose-500/40 shadow-xs' 
                   : 'text-[#94A3B8] hover:text-white'
               }`}
@@ -1262,7 +1279,7 @@ export const StudentMentorView: React.FC<StudentMentorViewProps> = ({
                       <span className="font-bold text-emerald-400 block text-[11px] uppercase tracking-wider">
                         Key Strengths Noted
                       </span>
-                      {selectedSessionForDetail.feedback.strengths.map((str, idx) => (
+                      {selectedSessionForDetail.feedback.strengths.map((str: string, idx: number) => (
                         <div key={idx} className="flex items-start gap-1.5 text-[#CBD5E1]">
                           <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 shrink-0 mt-1.5" />
                           <span>{str}</span>
@@ -1274,7 +1291,7 @@ export const StudentMentorView: React.FC<StudentMentorViewProps> = ({
                       <span className="font-bold text-amber-400 block text-[11px] uppercase tracking-wider">
                         Next Improvements
                       </span>
-                      {selectedSessionForDetail.feedback.improvementAreas.map((imp, idx) => (
+                      {selectedSessionForDetail.feedback.improvementAreas.map((imp: string, idx: number) => (
                         <div key={idx} className="flex items-start gap-1.5 text-[#CBD5E1]">
                           <span className="w-1.5 h-1.5 rounded-full bg-amber-400 shrink-0 mt-1.5" />
                           <span>{imp}</span>
@@ -1290,7 +1307,7 @@ export const StudentMentorView: React.FC<StudentMentorViewProps> = ({
                         Action Items from this Session
                       </span>
                       <div className="space-y-1.5">
-                        {selectedSessionForDetail.feedback.actionItems.map((act) => (
+                        {selectedSessionForDetail.feedback.actionItems.map((act: any) => (
                           <div key={act.id} className="flex items-center gap-2 text-xs text-[#CBD5E1] bg-[#070D1B] p-2.5 rounded-lg border border-[#182338]">
                             <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
                             <span>{act.text}</span>

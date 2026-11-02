@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
-import { hashPassword, verifyPassword, DUMMY_PASSWORD_HASH, signJWT, verifyGoogleIdToken } from '@/lib/auth';
+import { hashPassword, verifyPassword, DUMMY_PASSWORD_HASH, signJWT, verifyGoogleIdToken, sessionCookieOptions } from '@/lib/auth';
 import * as crypto from 'crypto';
 
 export async function POST(req: NextRequest) {
@@ -74,11 +74,8 @@ export async function POST(req: NextRequest) {
       }
 
       if (!user) {
-        // New accounts get an unguessable password; they sign in with Google only.
-        // Enrol into the first published course so the student dashboard has data to show.
-        const course = await prisma.course.findFirst({ where: { published: true }, orderBy: { createdAt: 'asc' } });
-        const batch = course ? await prisma.batch.findFirst({ where: { courseId: course.id } }) : null;
-        const mentor = await prisma.user.findFirst({ where: { role: 'MENTOR' } });
+        // New accounts get an unguessable password and sign in with Google only. They are
+        // enrolled only once a payment succeeds (see lib/enrollment.ts).
         user = await prisma.user.create({
           data: {
             email: googleUser.email,
@@ -86,13 +83,8 @@ export async function POST(req: NextRequest) {
             passwordHash: await hashPassword(crypto.randomBytes(32).toString('hex')),
             role: 'STUDENT',
             phone,
-            ...(course && {
-              studentProfile: {
-                create: { courseId: course.id, batchId: batch?.id ?? null, mentorId: mentor?.id ?? null },
-              },
-            }),
             notifications: {
-              create: { message: `Welcome to CodeMyWay, ${googleUser.name}! Start exploring your dashboard and modules.`, isRead: false },
+              create: { message: `Welcome to CodeMyWay, ${googleUser.name}! Enrol in a program to unlock your dashboard.`, isRead: false },
             },
           }
         });
@@ -100,6 +92,8 @@ export async function POST(req: NextRequest) {
     } else {
       return NextResponse.json({ error: 'Invalid authentication type' }, { status: 400 });
     }
+
+    const enrolment = await prisma.studentProfile.findUnique({ where: { userId: user.id }, select: { id: true } });
 
     // Sign JWT session
     const token = await signJWT({ id: user.id, email: user.email, role: user.role, name: user.name });
@@ -111,17 +105,13 @@ export async function POST(req: NextRequest) {
         email: user.email,
         name: user.name,
         role: user.role,
+        phone: user.phone,
+        enrolled: !!enrolment,
       }
     });
 
     // Set cookie
-    response.cookies.set('token', token, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      maxAge: 60 * 60 * 24, // 24 hours
-      path: '/',
-    });
+    response.cookies.set('token', token, sessionCookieOptions());
 
     return response;
   } catch (error: any) {

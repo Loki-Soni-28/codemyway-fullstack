@@ -41,6 +41,7 @@ model User {
   weeklyStudentAssignments WeeklyCheckInStudent[]  @relation("WeeklyStudentAssignments")
   weeklyTeacherAssignments WeeklyCheckInStudent[]  @relation("WeeklyTeacherAssignments")
   weeklyAuditLogs          WeeklyCheckInAuditLog[] @relation("AuditActor")
+  payments         Payment[]
 }
 
 model StudentProfile {
@@ -74,6 +75,7 @@ model Course {
   batches         Batch[]
   studentProfiles StudentProfile[]
   certificates    Certificate[]
+  payments        Payment[]
 
   projects        CourseProject[]
   features        CourseFeature[]
@@ -609,3 +611,33 @@ model CheckInNotificationOutbox {
   @@index([checkInId])
 }
 
+model Payment {
+  id                String    @id @default(uuid())
+  userId            String
+  user              User      @relation(fields: [userId], references: [id])
+  courseId          String
+  course            Course    @relation(fields: [courseId], references: [id])
+  amount            Int       // in paise
+  currency          String    @default("INR")
+  status            String    @default("CREATED") // "CREATED", "PAID", "FAILED"
+  razorpayOrderId   String    @unique
+  razorpayPaymentId String?   @unique
+  discountPercent   Int       @default(0)
+  discountClaimId   String?
+  createdAt         DateTime  @default(now())
+  paidAt            DateTime?
+
+  @@index([userId, status])
+}
+
+model DiscountClaim {
+  id         String    @id @default(uuid())
+  email      String    @unique
+  name       String
+  phone      String
+  courseSlug String
+  percent    Int
+  expiresAt  DateTime
+  redeemedAt DateTime?
+  createdAt  DateTime  @default(now())
+}

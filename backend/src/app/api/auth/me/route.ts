@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getSessionUser } from '@/lib/auth';
+import { getSessionUser, signJWT, sessionCookieOptions } from '@/lib/auth';
 
 export async function GET() {
   const user = await getSessionUser();
@@ -7,7 +7,7 @@ export async function GET() {
     return NextResponse.json({ authenticated: false, user: null }, { status: 401 });
   }
 
-  return NextResponse.json({
+  const response = NextResponse.json({
     authenticated: true,
     user: {
       id: user.id,
@@ -16,7 +16,13 @@ export async function GET() {
       role: user.role,
       phone: user.phone,
       avatarUrl: user.avatarUrl,
+      enrolled: !!user.studentProfile,
       studentProfile: user.studentProfile,
     },
   });
+
+  // Sliding session: each check extends the login for another SESSION_DAYS.
+  const token = await signJWT({ id: user.id, email: user.email, role: user.role, name: user.name });
+  response.cookies.set('token', token, sessionCookieOptions());
+  return response;
 }

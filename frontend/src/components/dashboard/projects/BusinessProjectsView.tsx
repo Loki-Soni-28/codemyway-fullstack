@@ -516,7 +516,7 @@ export const BusinessProjectsView: React.FC<BusinessProjectsViewProps> = ({
           {(() => {
             const capstoneState = getProjectState(phase1MajorProject.id);
             return (
-              <div className="p-6 sm:p-7 rounded-3xl bg-gradient-to-r from-[#0E172E] via-[#141233] to-[#0E172E] border-2 border-purple-500/40 hover:border-purple-500/70 shadow-lg shadow-purple-500/10 transition-all space-y-6 relative overflow-hidden group">
+              <div className="p-6 sm:p-7 rounded-2xl bg-gradient-to-r from-[#0E172E] via-[#141233] to-[#0E172E] border-2 border-purple-500/40 hover:border-purple-500/70 shadow-lg shadow-purple-500/10 transition-all space-y-6 relative overflow-hidden group">
                 
                 {/* Ambient glow decoration */}
                 <div className="absolute top-0 right-0 w-96 h-96 bg-purple-500/10 rounded-full blur-3xl pointer-events-none" />
@@ -741,7 +741,7 @@ export const BusinessProjectsView: React.FC<BusinessProjectsViewProps> = ({
             const capstone2State = getProjectState(phase2MajorProject.id);
             const isLocked = capstone2State.status === 'Locked';
             return (
-              <div className="p-6 sm:p-7 rounded-3xl bg-gradient-to-r from-[#120E2E] via-[#18113A] to-[#120E2E] border-2 border-purple-500/50 hover:border-purple-400 shadow-xl shadow-purple-900/20 transition-all space-y-6 relative overflow-hidden group">
+              <div className="p-6 sm:p-7 rounded-2xl bg-gradient-to-r from-[#120E2E] via-[#18113A] to-[#120E2E] border-2 border-purple-500/50 hover:border-purple-400 shadow-xl shadow-purple-900/20 transition-all space-y-6 relative overflow-hidden group">
                 
                 <div className="absolute top-0 right-0 w-96 h-96 bg-purple-600/10 rounded-full blur-3xl pointer-events-none" />
 

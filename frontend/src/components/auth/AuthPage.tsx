@@ -37,6 +37,7 @@ interface ApiUser {
   phone: string | null;
   avatarUrl?: string;
   studentProfile?: any;
+  enrolled?: boolean;
 }
 
 export const toStudentUser = (u: ApiUser): StudentUser => ({
@@ -49,6 +50,7 @@ export const toStudentUser = (u: ApiUser): StudentUser => ({
   isLoggedIn: true,
   enrolledCourse: u.studentProfile?.course?.title ?? 'Data Analyst + GenAI Cohort',
   studentProfile: u.studentProfile,
+  enrolled: !!u.enrolled,
 });
 
 const GOOGLE_CLIENT_ID: string = (import.meta as any).env?.VITE_GOOGLE_CLIENT_ID ?? '';

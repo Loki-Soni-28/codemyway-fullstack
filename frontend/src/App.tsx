@@ -17,7 +17,18 @@ import { SkillStorePage } from './components/skill-store/SkillStorePage';
 import { StudentDashboardPage } from './components/dashboard/StudentDashboardPage';
 import { FacultyReviewView } from './components/dashboard/FacultyReviewView';
 import { AuthPage, toStudentUser } from './components/auth/AuthPage';
-import { api } from './api';
+import { useOffer } from './offer';
+import { api, ApiError } from './api';
+import { PolicyPage, PolicyKind } from './components/legal/PolicyPage';
+import { AboutPage } from './components/about/AboutPage';
+import { NotEnrolledPage } from './components/dashboard/NotEnrolledPage';
+
+const POLICY_PATHS: Record<PolicyKind, string> = {
+  privacy: '/privacy',
+  terms: '/terms',
+  refund: '/refund-policy',
+  contact: '/contact',
+};
 
 export default function App() {
   // Determine initial route based on window.location.pathname
@@ -28,6 +39,10 @@ export default function App() {
     if (path.includes('/student/dashboard')) return 'student-dashboard';
     if (path.includes('/faculty')) return 'faculty-reviews';
     if (path.includes('/login')) return 'login';
+    if (path === '/about') return 'about';
+    for (const [route, routePath] of Object.entries(POLICY_PATHS)) {
+      if (path === routePath) return route as NavigationRoute;
+    }
     return 'home';
   };
 
@@ -60,7 +75,7 @@ export default function App() {
       }
     } catch (err: any) {
       // If 401, it is an invalid/expired session
-      if (err.message && (err.message.includes('401') || err.message.toLowerCase().includes('unauthorized'))) {
+      if ((err instanceof ApiError && err.status === 401) || (err.message && (err.message.includes('401') || err.message.toLowerCase().includes('unauthorized')))) {
         setCurrentUser(null);
         setCurrentRoute((prev) => (prev === 'student-dashboard' || prev === 'faculty-reviews' ? 'login' : prev));
       } else {
@@ -75,6 +90,8 @@ export default function App() {
   useEffect(() => {
     validateSession();
   }, []);
+
+  const saveUser = (user: StudentUser) => setCurrentUser(user);
 
   const handleLoginSuccess = (user: StudentUser) => {
     setCurrentUser(user);
@@ -101,18 +118,13 @@ export default function App() {
   const [brochureTitle, setBrochureTitle] = useState('Data Analyst + GenAI');
   const [isMentorModalOpen, setIsMentorModalOpen] = useState(false);
   const [isBuyNowOpen, setIsBuyNowOpen] = useState(false);
-  const [checkoutData, setCheckoutData] = useState<{
-    title: string;
-    salePrice: string;
-    originalPrice: string;
-    discountText: string;
-  }>({
+  const [checkoutData, setCheckoutData] = useState<{ courseSlug: string; title: string }>({
+    courseSlug: 'data-analyst-with-gen-ai',
     title: 'Data Analyst + GenAI',
-    salePrice: '₹24,999',
-    originalPrice: '₹36,000',
-    discountText: '30% OFF · Active'
   });
   const [isDiscountOpen, setIsDiscountOpen] = useState(false);
+  const offer = useOffer();
+  const offerActive = !!offer?.active;
   
   // Show countdown banner by default for visitors unless manually dismissed in this session
   const [showTopCountdown, setShowTopCountdown] = useState<boolean>(() => {
@@ -150,17 +162,18 @@ export default function App() {
     isPrebooking: false
   });
 
-  // Automatically trigger 30% discount popup on website open
+  // Open the early-bird popup as soon as the site loads (once per browser session). It is
+  // skipped for people who already claimed it on this browser or are already enrolled.
   useEffect(() => {
-    const hasSeenPopup = sessionStorage.getItem('codemyway_discount_popup_shown');
-    // Open after a smooth 1.2s delay for maximum delight
-    const timer = setTimeout(() => {
-      setIsDiscountOpen(true);
+    if (!offerActive || currentUser?.enrolled) return;
+    try {
+      if (sessionStorage.getItem('codemyway_discount_popup_shown') || localStorage.getItem('codemyway_discount_claimed')) return;
       sessionStorage.setItem('codemyway_discount_popup_shown', 'true');
-    }, 1200);
-
-    return () => clearTimeout(timer);
-  }, []);
+    } catch {
+      // storage blocked: still show it
+    }
+    setIsDiscountOpen(true);
+  }, [offerActive]);
 
   // Handle route change with browser history update & student route protection
   const handleRouteChange = (route: NavigationRoute) => {
@@ -175,6 +188,8 @@ export default function App() {
     else if (route === 'skill-store') targetPath = '/skill-store';
     else if (route === 'student-dashboard') targetPath = '/student/dashboard';
     else if (route === 'login') targetPath = '/login';
+    else if (route === 'about') targetPath = '/about';
+    else if (route in POLICY_PATHS) targetPath = POLICY_PATHS[route as PolicyKind];
 
     if (window.location.pathname !== targetPath) {
       window.history.pushState({ route }, '', targetPath);
@@ -190,26 +205,33 @@ export default function App() {
     return () => window.removeEventListener('popstate', handlePopState);
   }, []);
 
+  // Logged in but not enrolled: show the public site chrome with a prompt instead of the dashboard
+  const dashboardBlocked = currentRoute === 'student-dashboard' && !!currentUser && !currentUser.enrolled;
+  const showPublicChrome =
+    (currentRoute !== 'student-dashboard' && currentRoute !== 'login' && currentRoute !== 'faculty-reviews') || dashboardBlocked;
+
   return (
     <div className="min-h-screen flex flex-col bg-[#08070B] text-white selection:bg-[#9B59B6]/40 selection:text-[#F1C40F]">
       {/* Sticky Top Bar (Countdown Banner + Header) - Only on public website pages */}
-      {currentRoute !== 'student-dashboard' && currentRoute !== 'login' && (
+      {showPublicChrome && (
         <div className="sticky top-0 z-40 w-full">
-          {showTopCountdown && (
+          {offerActive && showTopCountdown && (
             <TopCountdownBanner
+              percent={offer!.percent}
+              endsAt={offer!.endsAt}
               onOpenDiscount={() => setIsDiscountOpen(true)}
               onDismiss={handleDismissTopCountdown}
             />
           )}
           <Header
             currentRoute={currentRoute}
+            onOpenMentors={() => {
+              handleRouteChange('home');
+              setTimeout(() => document.getElementById('mentors')?.scrollIntoView({ behavior: 'smooth' }), 150);
+            }}
             onRouteChange={handleRouteChange}
             currentUser={currentUser}
             onLogout={handleLogout}
-            onOpenBrochure={() => {
-              setBrochureTitle('Data Analyst + GenAI');
-              setIsBrochureOpen(true);
-            }}
           />
         </div>
       )}
@@ -272,6 +294,10 @@ export default function App() {
                 }}
                 onOpenMentorModal={() => setIsMentorModalOpen(true)}
                 onOpenBuyNowModal={(details) => {
+                  if (!currentUser) {
+                    handleRouteChange('login');
+                    return;
+                  }
                   if (details) {
                     setCheckoutData(details);
                   }
@@ -300,7 +326,7 @@ export default function App() {
               />
             )}
 
-            {currentRoute === 'student-dashboard' && (
+            {currentRoute === 'student-dashboard' && !dashboardBlocked && (
               currentUser?.isLoggedIn && currentUser.role === 'STUDENT' ? (
                 <StudentDashboardPage
                   onRouteChange={handleRouteChange}
@@ -329,18 +355,31 @@ export default function App() {
                 />
               )
             )}
+
+            {currentRoute === 'about' && (
+              <AboutPage onRouteChange={handleRouteChange} onOpenMentorModal={() => setIsMentorModalOpen(true)} />
+            )}
+
+            {dashboardBlocked && (
+              <NotEnrolledPage currentUser={currentUser!} onRouteChange={handleRouteChange} onLogout={handleLogout} />
+            )}
+
+            {(currentRoute === 'privacy' || currentRoute === 'terms' || currentRoute === 'refund' || currentRoute === 'contact') && (
+              <PolicyPage kind={currentRoute} onRouteChange={handleRouteChange} onRequestCall={() => setIsMentorModalOpen(true)} />
+            )}
           </>
         )}
       </main>
 
       {/* Footer - Only on public website pages */}
-      {currentRoute !== 'student-dashboard' && currentRoute !== 'login' && currentRoute !== 'faculty-reviews' && (
+      {showPublicChrome && (
         <Footer
           onRouteChange={handleRouteChange}
           onOpenBrochure={() => {
             setBrochureTitle('Data Analyst + GenAI');
             setIsBrochureOpen(true);
           }}
+          onOpenMentorModal={() => setIsMentorModalOpen(true)}
         />
       )}
 
@@ -358,13 +397,17 @@ export default function App() {
 
       <BuyNowCheckoutModal
         isOpen={isBuyNowOpen}
+        courseSlug={checkoutData.courseSlug}
         programTitle={checkoutData.title}
-        salePrice={checkoutData.salePrice}
-        originalPrice={checkoutData.originalPrice}
-        discountText={checkoutData.discountText}
-        onClose={() => {
+        onClose={() => setIsBuyNowOpen(false)}
+        onPaid={() => {
+          if (currentUser) saveUser({ ...currentUser, enrolled: true });
           setIsBuyNowOpen(false);
           handleRouteChange('student-dashboard');
+        }}
+        onLoginRequired={() => {
+          setIsBuyNowOpen(false);
+          handleRouteChange('login');
         }}
       />
 
@@ -376,25 +419,32 @@ export default function App() {
       />
 
       {/* 30% OFF Upcoming Batch Popup Modal (Never shown on Student Dashboard) */}
-      <DiscountPopupModal
-        isOpen={isDiscountOpen && currentRoute !== 'student-dashboard'}
-        onClose={handleCloseDiscountModal}
-        onClaimDiscount={(code) => {
-          // Can automatically redirect to checkout or courses
-          setBrochureTitle('Data Analyst + GenAI (30% Discount Reserved)');
-        }}
-      />
+      {offerActive && (
+        <DiscountPopupModal
+          isOpen={isDiscountOpen && currentRoute !== 'student-dashboard'}
+          onClose={handleCloseDiscountModal}
+          percent={offer!.percent}
+          endsAt={offer!.endsAt}
+          onClaimDiscount={() => {
+            try {
+              localStorage.setItem('codemyway_discount_claimed', 'true');
+            } catch {
+              // ignore
+            }
+          }}
+        />
+      )}
 
       {/* Floating 30% OFF Batch Offer Pill to Re-open anytime (Never shown on Student Dashboard) */}
-      {!isDiscountOpen && currentRoute !== 'student-dashboard' && (
+      {offerActive && !isDiscountOpen && currentRoute !== 'student-dashboard' && (
         <button
           onClick={() => setIsDiscountOpen(true)}
-          className="fixed bottom-16 sm:bottom-20 right-6 z-40 px-4 py-2.5 rounded-full bg-gradient-to-r from-[#9B59B6] to-[#7A3E9D] hover:from-[#A86AC3] hover:to-[#8C47B3] text-white text-xs font-bold shadow-[0_0_25px_rgba(155,89,182,0.6)] border border-[#D1CADB]/30 flex items-center gap-2 hover:scale-105 active:scale-95 transition-all cursor-pointer group"
-          title="Open 30% discount offer"
+          className="fixed bottom-16 sm:bottom-20 right-6 z-40 px-4 py-2.5 rounded-full bg-gradient-to-r from-[#9B59B6] to-[#7A3E9D] hover:from-[#A86AC3] hover:to-[#8C47B3] text-white text-xs font-bold border border-[#D1CADB]/30 flex items-center gap-2 hover:scale-105 active:scale-95 transition-all cursor-pointer group"
+          title="Open early-bird offer"
         >
           <span className="w-2 h-2 rounded-full bg-[#F1C40F] animate-ping" />
           <Gift className="w-4 h-4 text-[#F1C40F]" />
-          <span>30% OFF New Batch</span>
+          <span>{offer!.percent}% OFF<span className="hidden sm:inline"> New Batch</span></span>
         </button>
       )}
 

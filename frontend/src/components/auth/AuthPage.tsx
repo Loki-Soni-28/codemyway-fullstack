@@ -292,7 +292,9 @@ export const AuthPage: React.FC<AuthPageProps> = ({
             <div className="mt-5">{identityBlock(isLogin ? 'signin_with' : 'signup_with')}</div>
 
             <p className="mt-4 text-center text-xs text-[#A7A0B5]">
-              Use the Google account associated with your CodeMyWay enrollment.
+              {isLogin
+                ? 'Use the Google account associated with your CodeMyWay enrollment.'
+                : 'Choose the Google account you want to use for your CodeMyWay learning dashboard.'}
             </p>
 
             <p className="mt-5 text-center text-sm text-[#A7A0B5]">

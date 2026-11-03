@@ -7,7 +7,24 @@ function hashPassword(password: string): string {
   return bcrypt.hashSync(password, 12);
 }
 
+// This script DELETES every row and loads demo data with the password "password123".
+// It refuses to run against production or a hosted (Supabase) database unless you
+// explicitly opt in with ALLOW_DESTRUCTIVE_SEED=yes.
+function assertSafeToSeed() {
+  if (process.env.ALLOW_DESTRUCTIVE_SEED === 'yes') return;
+  const url = process.env.DATABASE_URL || '';
+  const hosted = /supabase\.(co|com)/.test(url);
+  if (process.env.NODE_ENV === 'production' || hosted) {
+    console.error(
+      'Refusing to seed: this wipes the whole database and creates demo accounts with a known password.\n' +
+      'DATABASE_URL points at a hosted/production database. Use a local database, or set ALLOW_DESTRUCTIVE_SEED=yes if you really mean it.'
+    );
+    process.exit(1);
+  }
+}
+
 async function main() {
+  assertSafeToSeed();
   console.log('Clearing database...');
   await prisma.payment.deleteMany({});
   await prisma.discountClaim.deleteMany({});

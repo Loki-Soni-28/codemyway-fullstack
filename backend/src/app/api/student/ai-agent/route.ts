@@ -2,6 +2,11 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getSessionUser } from '@/lib/auth';
 import { prisma } from '@/lib/db';
 import { generateContent } from '@/lib/gemini';
+import { readJsonObject, badJson, tooManyRequests } from '@/lib/http';
+
+const MAX_MESSAGE_LENGTH = 2000;
+// Asks to raise a ticket explicitly, e.g. "raise a ticket", "open a support ticket", "ticket for my login issue".
+const TICKET_INTENT = /\b(raise|create|open|file|submit|log)\b.{0,30}\bticket\b|\bticket\b.{0,15}\b(for|about|regarding)\b/;
 
 export async function POST(req: NextRequest) {
   try {
@@ -9,9 +14,18 @@ export async function POST(req: NextRequest) {
     if (!user || user.role !== 'STUDENT') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
-    const { message } = await req.json();
-    if (!message || typeof message !== 'string') {
+    // Each AI call costs money: 30 messages per student per hour.
+    const limited = tooManyRequests(req, 'ai-agent', 30, 60 * 60 * 1000, user.id);
+    if (limited) return limited;
+
+    const body = await readJsonObject(req);
+    if (!body) return badJson();
+    const { message } = body;
+    if (!message || typeof message !== 'string' || !message.trim()) {
       return NextResponse.json({ error: 'Message is required' }, { status: 400 });
+    }
+    if (message.length > MAX_MESSAGE_LENGTH) {
+      return NextResponse.json({ error: `Message is too long (max ${MAX_MESSAGE_LENGTH} characters)` }, { status: 400 });
     }
 
     const query = message.trim();
@@ -80,7 +94,7 @@ export async function POST(req: NextRequest) {
       }
     }
     // Intent 3: Raise/Create support ticket
-    else if (normalized.includes('ticket') || normalized.includes('support') || normalized.includes('raise') || normalized.includes('create')) {
+    else if (TICKET_INTENT.test(normalized)) {
       executedTool = "create_support_ticket";
       // Actually raise a database record in Supabase!
       try {
@@ -105,7 +119,7 @@ export async function POST(req: NextRequest) {
     }
 
     // 6. AI/LLM Synthesis Stage (with RAG & Tool context)
-    const systemPrompt = `You are the CODEDOJO Learning Assistant, integrated into a Next.js full-stack platform running on Supabase PostgreSQL.
+    const systemPrompt = `You are the CodeMyWay Learning Assistant, helping students of the CodeMyWay technology education platform.
 Your goal is to answer student queries about their courses, attendance, grades, and sessions.
 Below is the verified context fetched from the database:
 [RAG CURRICULUM CONTEXT]

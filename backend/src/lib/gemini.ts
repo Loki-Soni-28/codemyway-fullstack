@@ -96,7 +96,7 @@ Based on the direct database tools executed for your account:
 
 You are doing excellent! Keep attending live sessions to maintain your rank.`;
   } else if (normalized.includes('module') || normalized.includes('curriculum') || normalized.includes('course') || normalized.includes('syllabus')) {
-    responseText = `${prefix ? prefix + '\n\n' : ''}### 📚 CODEDOJO Course Modules
+    responseText = `${prefix ? prefix + '\n\n' : ''}### 📚 CodeMyWay Course Modules
 Using RAG curriculum context, here is the syllabus mapping for **Data Science & Machine Learning**:
 
 1. **Module 1: Python Fundamentals & Data Cleaning**
@@ -131,7 +131,7 @@ A new support ticket has been registered in the database for you:
 
 Our operations team will review your ticket and post a message inside your Support portal within 2 hours. You can track this under the "Raise Ticket" tab!`;
   } else {
-    responseText = `${prefix ? prefix + '\n\n' : ''}Hello! I am your CODEDOJO Learning Agent.
+    responseText = `${prefix ? prefix + '\n\n' : ''}Hello! I am your CodeMyWay Learning Agent.
 I can help you with:
 1. **RAG Curriculum Queries**: Ask me about course modules, syllabus, and learning paths.
 2. **Student Performance Tools**: Query your attendance, assignment marks, and leaderboard rank.

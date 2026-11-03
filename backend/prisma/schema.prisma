@@ -1,6 +1,9 @@
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  // App traffic: Supabase transaction pooler (port 6543, ?pgbouncer=true&connection_limit=1).
+  url       = env("DATABASE_URL")
+  // Migrations: direct/session connection (port 5432). Prisma Migrate can't run through pgbouncer.
+  directUrl = env("DIRECT_URL")
 }
 
 generator client {

@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getSessionUser } from '@/lib/auth';
 import { prisma } from '@/lib/db';
+import { computeBatchLeaderboard } from '@/lib/leaderboard';
 
 export async function GET() {
   const user = await getSessionUser();
@@ -90,7 +91,7 @@ export async function GET() {
       });
     });
 
-    const assignmentScorePercent = totalPoints > 0 ? Math.round((earnedPoints / totalPoints) * 100) : 80;
+    const assignmentScorePercent = totalPoints > 0 ? Math.round((earnedPoints / totalPoints) * 100) : 0;
     const assignmentProgressPercent = totalQuestionsCount > 0 ? Math.round((completedQuestionsCount / totalQuestionsCount) * 100) : 0;
 
     // 4. Retrieve Upcoming Mentor Session
@@ -105,62 +106,17 @@ export async function GET() {
 
     const upcomingSession = mentorSessions.find(s => s.status === 'SCHEDULED');
 
-    // 5. Leaderboard Calculation
-    // Find all students in this batch
-    const batchProfiles = await prisma.studentProfile.findMany({
-      where: { batchId },
-      include: { user: { include: { submissions: true } } }
-    });
-
-    // Simple rank calculation based on correct submissions count / overall score
-    const leaderboardRows = batchProfiles.map(p => {
-      const studentSubmissions = p.user.submissions;
-      const correctCount = studentSubmissions.filter(s => s.isCorrect).length;
-      const score = correctCount * 10; // 10 points per correct answer
-      
-      // Seed some default score variability for demo leaderboard completeness
-      let mockContestScore = 70;
-      let mockAssignmentScore = 80;
-
-      if (p.user.email === 'aarav@codedojo.com') {
-        mockContestScore = 90;
-        mockAssignmentScore = 95;
-      } else if (p.user.name.includes('Ananya')) {
-        mockContestScore = 85;
-        mockAssignmentScore = 92;
-      } else if (p.user.name.includes('Kabir')) {
-        mockContestScore = 80;
-        mockAssignmentScore = 88;
-      } else {
-        // Pseudo-random deterministic scores based on ID length
-        mockContestScore = 50 + (p.id.length % 40);
-        mockAssignmentScore = 60 + (p.id.length % 35);
-      }
-
-      const overall = Math.round(mockAssignmentScore * 0.6 + mockContestScore * 0.4);
-
-      return {
-        id: p.userId,
-        name: p.user.name,
-        email: p.user.email,
-        assignmentScore: mockAssignmentScore,
-        contestScore: mockContestScore,
-        overallScore: overall
-      };
-    });
-
-    // Sort by overall score descending
-    leaderboardRows.sort((a, b) => b.overallScore - a.overallScore);
-
-    // Add rankings
-    const rankedRows = leaderboardRows.map((row, index) => ({
-      rank: index + 1,
-      ...row
-    }));
-
-    // Find current user's position
+    // 5. Leaderboard (real scores from submissions)
+    const rankedRows = await computeBatchLeaderboard(batchId);
     const myIndex = rankedRows.findIndex(row => row.id === user.id);
-    const myRank = myIndex !== -1 ? myIndex + 1 : 3;
+    const myRow = myIndex !== -1 ? rankedRows[myIndex] : null;
+
+    // Modules count as completed once every class the batch has in them is completed.
+    const courseModules = profile.course?.modules ?? [];
+    const modulesCompleted = courseModules.filter(m => {
+      const moduleClasses = classes.filter(c => c.moduleId === m.id);
+      return moduleClasses.length > 0 && moduleClasses.every(c => c.status === 'COMPLETED');
+    }).length;
 
     // Filter leaderboard preview to show: Top 2 + current user + next user
     let previewLeaderboard = [];
@@ -168,7 +124,7 @@ export async function GET() {
       previewLeaderboard = rankedRows;
     } else {
       const top2 = rankedRows.slice(0, 2);
-      const isMyRowInTop2 = myIndex < 2;
+      const isMyRowInTop2 = myIndex === -1 || myIndex < 2;
 
       if (isMyRowInTop2) {
         previewLeaderboard = rankedRows.slice(0, 4);
@@ -227,13 +183,13 @@ export async function GET() {
         assignment: todayAssignment
       },
       progress: {
-        overall: assignmentScorePercent,
-        modulesCompleted: 2,
-        totalModules: 3,
+        overall: myRow?.overallScore ?? assignmentScorePercent,
+        modulesCompleted,
+        totalModules: courseModules.length,
         classesAttended: attendedCount,
         totalClasses: totalBatchClasses,
         assignmentScore: assignmentScorePercent,
-        contestScore: 76
+        contestScore: myRow?.contestScore ?? 0
       },
       attendance: {
         percentage: attendancePercentage,
@@ -243,8 +199,8 @@ export async function GET() {
       },
       leaderboardPreview: previewLeaderboard,
       myRank: {
-        rank: myRank,
-        score: rankedRows[myIndex]?.overallScore || 88
+        rank: myRow?.rank ?? null,
+        score: myRow?.overallScore ?? 0
       },
       upcomingMentorSession: upcomingSession ? {
         id: upcomingSession.id,

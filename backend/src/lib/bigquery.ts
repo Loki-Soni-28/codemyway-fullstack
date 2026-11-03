@@ -1,5 +1,4 @@
 import { BigQuery } from '@google-cloud/bigquery';
-import { prisma } from './db';
 
 let bigquery: BigQuery | null = null;
 
@@ -9,10 +8,11 @@ try {
     bigquery = new BigQuery();
   }
 } catch (e) {
-  console.warn('BigQuery client could not initialize. Falling back to local SQLite analytics logs.', e);
+  console.warn('BigQuery client could not initialize. Analytics streaming is disabled.', e);
 }
 
-const DATASET_ID = 'codedojo_analytics';
+// Optional: analytics are streamed to BigQuery only when GCP credentials are configured.
+const DATASET_ID = process.env.BIGQUERY_DATASET || 'codemyway_analytics';
 
 export async function logSubmissionToBigQuery(data: {
   studentId: string;
@@ -25,7 +25,6 @@ export async function logSubmissionToBigQuery(data: {
   console.log(`[BigQuery Log] Streaming Submission: ${data.studentName} scored ${data.score}/${data.maxScore} on "${data.assignmentTitle}"`);
 
   if (!bigquery) {
-    console.log('[BigQuery Log] Active Google Cloud connection not found. Analytics logging completed on fallback database (SQLite).');
     return;
   }
 
@@ -56,7 +55,6 @@ export async function logAttendanceToBigQuery(data: {
   console.log(`[BigQuery Log] Streaming Attendance: ${data.studentName} marked ${data.status} for class "${data.classTitle}"`);
 
   if (!bigquery) {
-    console.log('[BigQuery Log] Active Google Cloud connection not found. Analytics logging completed on fallback database (SQLite).');
     return;
   }
 
@@ -73,42 +71,5 @@ export async function logAttendanceToBigQuery(data: {
     console.log('[BigQuery Log] Inserted row into Google BigQuery.');
   } catch (error) {
     console.error('[BigQuery Log] Error logging attendance to GCP:', error);
-  }
-}
-
-export async function getBigQueryAnalyticsSummary() {
-  if (!bigquery) {
-    const studentsCount = await prisma.studentProfile.count();
-    const coursesCount = await prisma.course.count();
-    return {
-      total_students: studentsCount,
-      total_courses: coursesCount,
-      average_grade: 88.4,
-      data_source: 'SQLite Database (Local operational store)'
-    };
-  }
-
-  try {
-    const query = `
-      SELECT 
-        COUNT(DISTINCT student_id) as total_students,
-        AVG(score / max_score) * 100 as average_grade
-      FROM \`${DATASET_ID}.assignment_submissions\`
-    `;
-    const [rows] = await bigquery.query({ query });
-    const studentsCount = await prisma.studentProfile.count();
-    return {
-      total_students: rows[0]?.total_students || studentsCount,
-      total_courses: 10,
-      average_grade: parseFloat((rows[0]?.average_grade || 88.4).toFixed(1)),
-      data_source: 'Google Cloud Platform (BigQuery OLAP Analytics)'
-    };
-  } catch (e) {
-    return {
-      total_students: 20,
-      total_courses: 10,
-      average_grade: 88.4,
-      data_source: 'SQLite Database (BigQuery connection offline)'
-    };
   }
 }

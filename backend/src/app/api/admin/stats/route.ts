@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getSessionUser } from '@/lib/auth';
 import { prisma } from '@/lib/db';
-import { getBigQueryAnalyticsSummary } from '@/lib/bigquery';
 
 export async function GET() {
   const user = await getSessionUser();
@@ -17,8 +16,12 @@ export async function GET() {
       where: { status: { in: ['OPEN', 'IN_PROGRESS'] } }
     });
 
-    // Fetch analytical details from BigQuery / SQLite fallback
-    const analytics = await getBigQueryAnalyticsSummary();
+    // Average grade across all assignment submissions: points scored / points available.
+    const [grade] = await prisma.$queryRaw<{ average: number | null }[]>`
+      SELECT SUM(s."score")::float / NULLIF(SUM(q."points"), 0) * 100 AS average
+      FROM "Submission" s JOIN "Question" q ON q."id" = s."questionId"
+    `;
+    const averageGrade = grade?.average == null ? null : Math.round(grade.average * 10) / 10;
 
     return NextResponse.json({
       success: true,
@@ -27,8 +30,7 @@ export async function GET() {
         totalCourses: coursesCount,
         totalBatches: batchesCount,
         unresolvedTickets: ticketsCount,
-        averageGrade: analytics.average_grade,
-        dataSource: analytics.data_source
+        averageGrade
       }
     });
 

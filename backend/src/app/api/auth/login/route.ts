@@ -2,26 +2,28 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { hashPassword, verifyPassword, DUMMY_PASSWORD_HASH, signJWT, verifyGoogleIdToken, sessionCookieOptions } from '@/lib/auth';
 import * as crypto from 'crypto';
+import { readJsonObject, badJson, tooManyRequests } from '@/lib/http';
 
 export async function POST(req: NextRequest) {
+  // 10 attempts per IP every 15 minutes slows down password guessing.
+  const limited = tooManyRequests(req, 'login', 10, 15 * 60 * 1000);
+  if (limited) return limited;
+
   try {
-    const body = await req.json();
+    const body = await readJsonObject(req);
+    if (!body) return badJson();
     const { type, email, password } = body;
 
     let user = null;
 
     if (type === 'credentials') {
-      if (!email || !password) {
+      if (!email || !password || typeof email !== 'string' || typeof password !== 'string') {
         return NextResponse.json({ error: 'Email and password are required' }, { status: 400 });
       }
 
       user = await prisma.user.findUnique({
-        where: { email: email.toLowerCase() },
+        where: { email: email.trim().toLowerCase() },
       });
-
-      if (typeof email !== 'string' || typeof password !== 'string') {
-        return NextResponse.json({ error: 'Invalid email or password' }, { status: 401 });
-      }
 
       const { valid, needsRehash } = await verifyPassword(password, user?.passwordHash ?? DUMMY_PASSWORD_HASH);
       if (!user || !valid) {

@@ -83,7 +83,7 @@ export async function POST(req: NextRequest) {
 
     // Process bulk check-in
     for (const r of records) {
-      // Upsert attendance record in SQLite
+      // Upsert attendance record in the database
       const existing = await prisma.attendance.findFirst({
         where: { classId, studentId: r.userId }
       });

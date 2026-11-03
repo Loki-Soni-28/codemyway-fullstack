@@ -1,14 +1,29 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
+import { readJsonObject, badJson, tooManyRequests, EMAIL_RE } from '@/lib/http';
 import { hashPassword, signJWT, MIN_PASSWORD_LENGTH, MAX_PASSWORD_BYTES, sessionCookieOptions } from '@/lib/auth';
 
 export async function POST(req: NextRequest) {
+  // 5 sign-ups per IP per hour blocks bulk account creation.
+  const limited = tooManyRequests(req, 'register', 5, 60 * 60 * 1000);
+  if (limited) return limited;
+
   try {
-    const body = await req.json();
-    const { email, password, name, phone } = body;
+    const body = await readJsonObject(req);
+    if (!body) return badJson();
+    const { password } = body;
+    const email = typeof body.email === 'string' ? body.email.trim().toLowerCase() : '';
+    const name = typeof body.name === 'string' ? body.name.trim() : '';
+    const phone = typeof body.phone === 'string' && body.phone.trim() ? body.phone.trim() : null;
 
     if (!email || !password || !name) {
       return NextResponse.json({ error: 'Missing required registration fields' }, { status: 400 });
+    }
+    if (!EMAIL_RE.test(email) || email.length > 254) {
+      return NextResponse.json({ error: 'Please enter a valid email address' }, { status: 400 });
+    }
+    if (name.length > 100 || (phone && phone.length > 20)) {
+      return NextResponse.json({ error: 'Name or phone number is too long' }, { status: 400 });
     }
 
     if (typeof password !== 'string' || password.length < MIN_PASSWORD_LENGTH) {
@@ -19,7 +34,7 @@ export async function POST(req: NextRequest) {
     }
 
     const existingUser = await prisma.user.findUnique({
-      where: { email: email.toLowerCase() },
+      where: { email },
     });
 
     if (existingUser) {
@@ -30,7 +45,7 @@ export async function POST(req: NextRequest) {
     const passwordHash = await hashPassword(password);
     const user = await prisma.user.create({
       data: {
-        email: email.toLowerCase(),
+        email,
         passwordHash,
         name,
         phone,

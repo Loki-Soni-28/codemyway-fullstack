@@ -44,7 +44,7 @@ export async function POST(req: NextRequest) {
     const isCorrect = answer.trim().toLowerCase() === question.correctAnswer.trim().toLowerCase();
     const score = isCorrect ? question.points : 0;
 
-    // Save submission to SQLite database
+    // Save submission to the database
     const submission = await prisma.submission.create({
       data: {
         studentId: user.id,

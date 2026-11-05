@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { api } from '../../../api';
 import { 
   Briefcase, 
   Check,
@@ -22,7 +23,8 @@ import {
   ShieldCheck, 
   Lock,
   User,
-  Star
+  Star,
+  AlertCircle
 } from 'lucide-react';
 import { motion } from 'motion/react';
 import { 
@@ -30,11 +32,6 @@ import {
   StudentProjectState, 
   ProjectStatus 
 } from './types';
-import { ALL_PROJECTS } from './projectData';
-import { 
-  getStudentProjects, 
-  calculateProjectMetrics 
-} from './projectStorage';
 import { ProjectStatusBadge } from './ProjectStatusBadge';
 import { ProjectDetailView } from './ProjectDetailView';
 
@@ -45,13 +42,12 @@ interface BusinessProjectsViewProps {
 }
 
 export const BusinessProjectsView: React.FC<BusinessProjectsViewProps> = ({
-  studentEmail = 'anuj.sharma@example.com',
-  studentName = 'Anuj'
+  studentEmail = '',
+  studentName = 'Student'
 }) => {
-  // Load persistent student projects state
-  const [studentProjects, setStudentProjects] = useState<StudentProjectState[]>(() => 
-    getStudentProjects(studentEmail)
-  );
+  const [dbProjects, setDbProjects] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [fetchError, setFetchError] = useState<string | null>(null);
 
   // Selected project to view in detailed page (null = list view)
   const [activeProjectId, setActiveProjectId] = useState<string | null>(null);
@@ -59,46 +55,134 @@ export const BusinessProjectsView: React.FC<BusinessProjectsViewProps> = ({
   // Filter state: 'all' | 'phase1' | 'phase2' | 'completed' | 'in-progress'
   const [activeFilter, setActiveFilter] = useState<'all' | 'phase1' | 'phase2' | 'completed' | 'in-progress'>('all');
 
-  // Reload projects when studentEmail changes
-  useEffect(() => {
-    setStudentProjects(getStudentProjects(studentEmail));
-  }, [studentEmail]);
-
-  // Calculate dynamic metrics strictly from student project records
-  const metrics = calculateProjectMetrics(studentProjects);
-
-  // Handler for state updates from the detail view
-  const handleStateUpdated = (updatedState: StudentProjectState) => {
-    setStudentProjects(prev => {
-      const idx = prev.findIndex(p => p.projectId === updatedState.projectId);
-      if (idx !== -1) {
-        const copy = [...prev];
-        copy[idx] = updatedState;
-        return copy;
+  const fetchProjects = async () => {
+    setIsLoading(true);
+    setFetchError(null);
+    try {
+      const res = await api<{ success: boolean; projects: any[] }>('/student/projects');
+      if (res && res.success) {
+        setDbProjects(res.projects);
       }
-      return [...prev, updatedState];
-    });
+    } catch (err: any) {
+      console.error('Failed to load projects:', err);
+      setFetchError(err.message || 'Unable to load cohort projects.');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  // Helper to find project definition and state
+  useEffect(() => {
+    fetchProjects();
+  }, []);
+
+  // Transform backend DB CourseProjects to frontend ProjectDefinition & StudentProjectState
+  const projectDefinitions: ProjectDefinition[] = dbProjects.map((p, idx) => ({
+    id: p.id,
+    phaseNumber: (idx < Math.ceil(dbProjects.length / 2) ? 1 : 2) as 1 | 2,
+    moduleNumber: idx + 1,
+    type: p.type === 'major' ? 'major' : 'minor',
+    title: p.title,
+    shortDescription: p.problemStatement || 'Production-grade enterprise business project.',
+    technologies: p.technologies || [],
+    submissionDeadline: '15 Nov 2026, 11:59 PM',
+    objective: p.outcome || 'Design and deploy end-to-end analytical solutions solving real business problems.',
+    businessContext: p.problemStatement || 'Enterprise business case study requiring robust implementation.',
+    problemStatement: p.problemStatement || 'Implement production pipeline and executive dashboard.',
+    expectedOutcome: p.outcome || 'Production deliverables with verified test cases and executive summary.',
+    skillsRequired: (p.skillsCovered || []).map((s: string) => ({ name: s, category: 'Technical' })),
+    resources: p.resources || [],
+    taskRequirements: [
+      'Design modular, performant query architecture or script modules.',
+      'Ensure proper handling of edge cases, null values, and anomalies.',
+      'Document deliverables with README and architectural overview.'
+    ],
+    deliverables: [
+      'GitHub repository with clean structure and commit history.',
+      'Live deployment or query script files.',
+      'Executive summary documentation.'
+    ],
+    evaluationCriteriaOverview: [
+      'Technical Rigor & Code Quality (30%)',
+      'Business Problem Formulation & Context (30%)',
+      'Visual & Interactive Polish (20%)',
+      'Documentation & Insights (20%)'
+    ],
+    submissionInstructions: [
+      'Provide your GitHub repository link and any live dashboard or video demo URL.',
+      'Attach any required query files or reports.'
+    ]
+  }));
+
   const getProjectState = (projectId: string): StudentProjectState => {
-    return studentProjects.find(p => p.projectId === projectId) || {
+    const p = dbProjects.find(item => item.id === projectId);
+    const sub = p?.submission;
+    const status: ProjectStatus = sub
+      ? (sub.status as ProjectStatus)
+      : 'Not Started';
+
+    return {
       projectId,
       studentEmail,
-      status: 'Not Started',
+      status,
       isUnlocked: true,
-      submissions: [],
-      lastUpdated: new Date().toISOString()
+      currentScore: sub?.review?.overallScore || undefined,
+      lastUpdated: sub?.submittedAt || new Date().toISOString(),
+      submissions: sub ? [
+        {
+          version: sub.version,
+          submittedAt: sub.submittedAt,
+          projectDescription: sub.projectDescription,
+          uploadedFiles: (sub.files || []).map((f: any) => ({
+            fileName: f.fileName,
+            fileSize: f.fileSize || '1.0 MB',
+            fileType: f.fileType || 'application/octet-stream',
+            uploadedAt: sub.submittedAt
+          })),
+          githubRepoUrl: sub.githubRepoUrl || undefined,
+          liveDashboardUrl: sub.liveDashboardUrl || undefined,
+          demoVideoUrl: sub.demoVideoUrl || undefined,
+          status: sub.status as ProjectStatus,
+          mentorReview: sub.review ? {
+            mentorName: sub.review.reviewerName,
+            mentorAvatar: sub.review.reviewerAvatar || undefined,
+            reviewDate: new Date(sub.review.reviewDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }),
+            overallScore: sub.review.overallScore || 0,
+            maxScore: sub.review.maxScore || 100,
+            criteriaBreakdown: sub.review.criteriaBreakdown || [],
+            writtenFeedback: sub.review.writtenFeedback,
+            strengths: sub.review.strengths || [],
+            improvementAreas: sub.review.improvementAreas || [],
+            revisionInstructions: sub.review.revisionInstructions
+          } : undefined
+        }
+      ] : []
     };
   };
 
+  // Metrics calculated strictly from real database submissions
+  const totalCount = projectDefinitions.length;
+  const completedCount = dbProjects.filter(p => p.submission?.status === 'Approved').length;
+  const inProgressCount = dbProjects.filter(p => p.submission && p.submission.status !== 'Approved').length;
+  const avgScore = completedCount > 0
+    ? Math.round(
+        dbProjects
+          .filter(p => p.submission?.review?.overallScore)
+          .reduce((acc, p) => acc + (p.submission.review.overallScore || 0), 0) / completedCount
+      )
+    : 0;
+
+  // Handler for state updates from the detail view
+  const handleStateUpdated = (updatedState: StudentProjectState) => {
+    fetchProjects();
+  };
+
   // Phase 1 Projects
-  const phase1MinorProjects = ALL_PROJECTS.filter(p => p.phaseNumber === 1 && p.type === 'minor');
-  const phase1MajorProject = ALL_PROJECTS.find(p => p.phaseNumber === 1 && p.type === 'major')!;
+  const phase1MinorProjects = projectDefinitions.filter(p => p.phaseNumber === 1 && p.type === 'minor');
+  const phase1MajorProject = projectDefinitions.find(p => p.phaseNumber === 1 && p.type === 'major') || projectDefinitions[0];
 
   // Phase 2 Projects
-  const phase2MinorProjects = ALL_PROJECTS.filter(p => p.phaseNumber === 2 && p.type === 'minor');
-  const phase2MajorProject = ALL_PROJECTS.find(p => p.phaseNumber === 2 && p.type === 'major')!;
+  const phase2MinorProjects = projectDefinitions.filter(p => p.phaseNumber === 2 && p.type === 'minor');
+  const phase2MajorProject = projectDefinitions.find(p => p.phaseNumber === 2 && p.type === 'major') || projectDefinitions[projectDefinitions.length - 1];
 
   // Tech Icon Resolver helper
   const getTechIcon = (tech: string) => {
@@ -123,9 +207,52 @@ export const BusinessProjectsView: React.FC<BusinessProjectsViewProps> = ({
     }
   };
 
+  if (isLoading) {
+    return (
+      <div className="w-full bg-[#070D1B] min-h-screen flex flex-col items-center justify-center p-12 space-y-4">
+        <div className="w-10 h-10 rounded-full border-2 border-blue-500/20 border-t-blue-400 animate-spin" />
+        <p className="text-xs text-[#94A3B8] font-mono tracking-wider animate-pulse">
+          Loading Enrolled Cohort Projects...
+        </p>
+      </div>
+    );
+  }
+
+  if (fetchError) {
+    return (
+      <div className="w-full bg-[#070D1B] min-h-screen flex items-center justify-center p-6">
+        <div className="max-w-md w-full bg-[#0D1527] border border-rose-500/30 rounded-2xl p-6 text-center space-y-4">
+          <AlertCircle className="w-8 h-8 text-rose-400 mx-auto" />
+          <h3 className="text-sm font-bold text-white">Project Synchronization Error</h3>
+          <p className="text-xs text-[#94A3B8]">{fetchError}</p>
+          <button
+            onClick={() => fetchProjects()}
+            className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-xs font-semibold cursor-pointer"
+          >
+            Retry Loading
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  if (projectDefinitions.length === 0) {
+    return (
+      <div className="w-full bg-[#070D1B] min-h-screen flex items-center justify-center p-6">
+        <div className="max-w-md w-full bg-[#0D1527] border border-[#1A263D] rounded-2xl p-8 text-center space-y-4">
+          <Briefcase className="w-10 h-10 text-blue-400 mx-auto opacity-60" />
+          <h3 className="text-base font-bold text-white">No Assigned Projects Yet</h3>
+          <p className="text-xs text-[#94A3B8] leading-relaxed">
+            Projects for your cohort will be assigned by the academic faculty as you progress through foundational modules.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   // If a project detail is active, render the dedicated Detail View
   if (activeProjectId) {
-    const projectDef = ALL_PROJECTS.find(p => p.id === activeProjectId);
+    const projectDef = projectDefinitions.find(p => p.id === activeProjectId);
     if (projectDef) {
       return (
         <ProjectDetailView
@@ -181,9 +308,9 @@ export const BusinessProjectsView: React.FC<BusinessProjectsViewProps> = ({
             <div>
               <span className="text-xs text-[#94A3B8] font-medium block">Total Projects</span>
               <span className="text-2xl sm:text-3xl font-extrabold text-white font-mono tracking-tight mt-0.5 block">
-                {metrics.totalProjects}
+                {totalCount}
               </span>
-              <span className="text-[10px] text-[#64748B] mt-1 block">Phase 1 (4) + Phase 2 (4)</span>
+              <span className="text-[10px] text-[#64748B] mt-1 block">Assigned in Cohort</span>
             </div>
             <div className="w-12 h-12 rounded-xl bg-blue-500/15 border border-blue-500/30 flex items-center justify-center text-blue-400">
               <Briefcase className="w-5 h-5" />
@@ -198,7 +325,7 @@ export const BusinessProjectsView: React.FC<BusinessProjectsViewProps> = ({
             <div>
               <span className="text-xs text-[#94A3B8] font-medium block">Completed Projects</span>
               <span className="text-2xl sm:text-3xl font-extrabold text-emerald-400 font-mono tracking-tight mt-0.5 block">
-                {metrics.completedProjects}
+                {completedCount}
               </span>
               <span className="text-[10px] text-emerald-400/70 mt-1 block font-semibold">
                 Approved & Evaluated
@@ -216,37 +343,36 @@ export const BusinessProjectsView: React.FC<BusinessProjectsViewProps> = ({
           >
             <div>
               <span className="text-xs text-[#94A3B8] font-medium block">In Progress</span>
-              <span className="text-2xl sm:text-3xl font-extrabold text-purple-300 font-mono tracking-tight mt-0.5 block">
-                {metrics.inProgress}
+              <span className="text-2xl sm:text-3xl font-extrabold text-purple-400 font-mono tracking-tight mt-0.5 block">
+                {inProgressCount}
               </span>
-              <span className="text-[10px] text-purple-400/70 mt-1 block">
-                Actively being built
+              <span className="text-[10px] text-purple-400/70 mt-1 block font-semibold">
+                Submitted / Under Review
               </span>
             </div>
             <div className="w-12 h-12 rounded-xl bg-purple-500/15 border border-purple-500/30 flex items-center justify-center text-purple-400">
-              <Clock className="w-5 h-5" />
+              <Hourglass className="w-5 h-5" />
             </div>
           </motion.div>
 
-          {/* Pending Review */}
+          {/* Average Score */}
           <motion.div 
             whileHover={{ y: -2 }}
             className="p-5 rounded-2xl bg-[#0A1120] border border-[#1A263D] hover:border-amber-500/40 shadow-sm transition-all flex items-center justify-between"
           >
             <div>
-              <span className="text-xs text-[#94A3B8] font-medium block">Pending Review</span>
-              <span className="text-2xl sm:text-3xl font-extrabold text-amber-300 font-mono tracking-tight mt-0.5 block">
-                {metrics.pendingReview}
+              <span className="text-xs text-[#94A3B8] font-medium block">Average Project Score</span>
+              <span className="text-2xl sm:text-3xl font-extrabold text-amber-400 font-mono tracking-tight mt-0.5 block">
+                {avgScore > 0 ? `${avgScore}%` : '--'}
               </span>
-              <span className="text-[10px] text-amber-400/70 mt-1 block">
-                Submitted / In Review
+              <span className="text-[10px] text-amber-400/70 mt-1 block font-semibold">
+                Faculty Evaluated
               </span>
             </div>
             <div className="w-12 h-12 rounded-xl bg-amber-500/15 border border-amber-500/30 flex items-center justify-center text-amber-400">
-              <Hourglass className="w-5 h-5" />
+              <Star className="w-5 h-5" />
             </div>
           </motion.div>
-
         </div>
 
       </section>

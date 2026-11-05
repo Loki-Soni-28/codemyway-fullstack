@@ -58,7 +58,7 @@ export const AboutPage: React.FC<AboutPageProps> = ({ onRouteChange, onOpenMento
         </div>
       </section>
 
-      <CompanyMarquee />
+      <CompanyMarquee onMeetMentors={() => { onRouteChange('mentors'); window.scrollTo({ top: 0 }); }} />
 
       <Manifesto onRouteChange={onRouteChange} />
 
@@ -150,6 +150,69 @@ export const AboutPage: React.FC<AboutPageProps> = ({ onRouteChange, onOpenMento
           </div>
         </section>
       )}
+
+      {/* Quality assurance: moved here from the home page */}
+      <section className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 mt-24 sm:mt-32">
+        <div className="bg-[#170F28] rounded-2xl p-8 lg:p-10 border border-[#5C4B8A] ">
+          <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-8">
+            <div>
+              <span className="text-xs font-semibold text-[#9B59B6] uppercase tracking-wider">Quality Assurance</span>
+              <h2 className="text-2xl sm:text-3xl font-bold text-white mt-1 font-['Sora']">Student Review Architecture</h2>
+              <p className="text-xs text-[#D1CADB] mt-1 max-w-xl">
+                Every cohort member evaluates modules, lab clarity, and mentorship usefulness upon phase completion.
+              </p>
+            </div>
+            
+            <div className="p-3 rounded-lg bg-[#2E1A47]/50 border border-[#5C4B8A]/50 text-[11px] text-[#D1CADB] max-w-xs">
+              <strong className="text-white">Verified Pipeline Notice:</strong> In adherence to academic integrity, we do not fabricate random student quotes. Showing structured evaluation schema for active cohort cohorts.
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="p-5 rounded-xl bg-[#231538] border border-[#5C4B8A]/60 hover:border-[#9B59B6] space-y-3 transition-all duration-300">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold text-white">Module 1 SQL Evaluation</span>
+                <span className="text-xs font-mono text-emerald-400 bg-emerald-950/60 border border-emerald-800/60 px-2 py-0.5 rounded shadow-[0_0_8px_rgba(16,185,129,0.25)]">4.9 / 5.0 Rating</span>
+              </div>
+              <p className="text-xs text-[#D1CADB] leading-relaxed italic">
+                “Breaking down window functions with visual partitioning made subqueries click after struggling in self-taught tutorials.”
+              </p>
+              <div className="pt-2 border-t border-[#5C4B8A]/30 text-[11px] text-[#A7A0B5] flex items-center justify-between">
+                <span>Verified Cohort Student · SQL Module</span>
+                <span className="font-mono text-white">Oct 2026</span>
+              </div>
+            </div>
+
+            <div className="p-5 rounded-xl bg-[#231538] border border-[#5C4B8A]/60 hover:border-[#9B59B6] space-y-3 transition-all duration-300">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold text-white">Lab Facilitator Pod Support</span>
+                <span className="text-xs font-mono text-emerald-400 bg-emerald-950/60 border border-emerald-800/60 px-2 py-0.5 rounded shadow-[0_0_8px_rgba(16,185,129,0.25)]">4.8 / 5.0 Rating</span>
+              </div>
+              <p className="text-xs text-[#D1CADB] leading-relaxed italic">
+                “Having Neha on screen during weekday lab hours to debug syntax errors saved me hours of frustration as a non-technical learner.”
+              </p>
+              <div className="pt-2 border-t border-[#5C4B8A]/30 text-[11px] text-[#A7A0B5] flex items-center justify-between">
+                <span>Verified Cohort Student · Non-Tech Transition</span>
+                <span className="font-mono text-white">Oct 2026</span>
+              </div>
+            </div>
+
+            <div className="p-5 rounded-xl bg-[#231538] border border-[#5C4B8A]/60 hover:border-[#9B59B6] space-y-3 transition-all duration-300">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold text-white">Rubric Code Review Rigor</span>
+                <span className="text-xs font-mono text-emerald-400 bg-emerald-950/60 border border-emerald-800/60 px-2 py-0.5 rounded shadow-[0_0_8px_rgba(16,185,129,0.25)]">5.0 / 5.0 Rating</span>
+              </div>
+              <p className="text-xs text-[#D1CADB] leading-relaxed italic">
+                “The line-by-line feedback on query optimization and indexing helped turn my first project into a true portfolio deliverable.”
+              </p>
+              <div className="pt-2 border-t border-[#5C4B8A]/30 text-[11px] text-[#A7A0B5] flex items-center justify-between">
+                <span>Verified Cohort Student · Retail SQL Project</span>
+                <span className="font-mono text-white">Oct 2026</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
 
       {/* CTA */}
       <section className="max-w-3xl mx-auto px-4 sm:px-6 mt-24 sm:mt-32">

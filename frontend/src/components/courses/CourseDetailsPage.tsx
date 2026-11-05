@@ -6,19 +6,21 @@ import {
   Download, 
   Check, 
   MessageSquare,
-  Sparkles,
   Terminal,
   FileSpreadsheet,
   BarChart2,
   BrainCircuit,
-  Layers,
   TrendingUp,
+  Sparkles,
+  Layers,
+  Cpu,
+  Clock,
+  CalendarDays,
+  Video,
+  Users,
   ChevronLeft,
-  ChevronRight,
-  Cpu
 } from 'lucide-react';
-import { LiquidHeroBackground } from '../home/LiquidHeroBackground';
-import courseHeroImage from '../../assets/images/course_data_analyst_hero_1792917846034.jpg';
+import { MentorCarousel } from '../common/MentorCarousel';
 
 interface CurriculumPhaseItem {
   icon: React.ElementType;
@@ -180,6 +182,67 @@ export const PROGRAM_SLIDES: ProgramSlide[] = [
   }
 ];
 
+// Shared hover treatment: cards lift and glow in the site's purple.
+const HOVER_CARD = 'transition-all duration-300 hover:-translate-y-1 hover:border-[#C084FC] hover:bg-[#1A1030] hover:shadow-[0_0_30px_rgba(192,132,252,0.22)]';
+
+// Copy for the individual program page, one entry per program.
+const DETAIL: Record<string, {
+  heroTitle: string;
+  heroSub: string;
+  durationLabel: string;
+  audience: { title: string; desc: string }[];
+  tools: string[];
+  inclusions: string[];
+  faqs: { q: string; a: string }[];
+}> = {
+  'data-analyst-genai': {
+    heroTitle: 'Become Confident in Data Analytics and AI-Powered Workflows.',
+    heroSub: '24-week mentor-led program with practical assignments, business projects and career preparation.',
+    durationLabel: '24 Weeks',
+    audience: [
+      { title: 'Beginners', desc: 'No prior coding is required. You start from raw data foundations and build up step by step.' },
+      { title: 'Career switchers', desc: 'Move into analytics from another field with a structured path, projects and mock interviews.' },
+      { title: 'Working professionals', desc: 'Already comfortable with spreadsheets? Add SQL, Python, BI dashboards and GenAI to your toolkit.' },
+    ],
+    tools: ['SQL', 'Advanced Excel', 'Power Query', 'Tableau', 'Python', 'NumPy', 'Pandas', 'Statistics', 'A/B Testing', 'GenAI'],
+    inclusions: [
+      'Live cohort classes with 1:5 lab pods',
+      '1 to 1 dedicated mentorship, including 8 free mentor sessions',
+      'Two major projects and two mock interviews',
+      '100% placement backing',
+    ],
+    faqs: [
+      { q: 'Do I need coding experience?', a: 'No. The program is designed for beginners and takes you from data foundations to Python.' },
+      { q: 'How long is the program?', a: '24 weeks (6 months), delivered as two 12-week phases.' },
+      { q: 'Will I get mentor support?', a: 'Yes. You get dedicated 1 to 1 mentorship, with 4 free mentor sessions in each phase.' },
+      { q: 'How do I enroll?', a: 'Click Enroll Now to complete checkout, or talk to a mentor first if you have questions.' },
+    ],
+  },
+  dsml: {
+    heroTitle: 'Build Production-Ready Machine Learning and GenAI Skills.',
+    heroSub: '12-month mentor-led program covering machine learning, deep learning, LLMs and deployment, with capstone projects and career preparation.',
+    durationLabel: '12 Months',
+    audience: [
+      { title: 'Analysts levelling up', desc: 'Already working with data and ready to move into predictive modelling and machine learning.' },
+      { title: 'Engineers and graduates', desc: 'Comfortable with math and logic and aiming for a data science or AI engineering role.' },
+      { title: 'Ambitious career builders', desc: 'Want a full-year, in-depth path from foundations to deployed GenAI systems.' },
+    ],
+    tools: ['Python', 'Linear Algebra', 'Scikit-Learn', 'XGBoost', 'Feature Engineering', 'PyTorch', 'Transformers', 'LLM Fine-tuning', 'RAG', 'FastAPI', 'Docker', 'MLflow'],
+    inclusions: [
+      'Live GPU clusters and AI labs',
+      '1 to 1 mentorship with FAANG / AI mentors, including 12 free mentor sessions',
+      'End-to-end predictive model and LLM / deep learning capstone',
+      '100% placement backing',
+    ],
+    faqs: [
+      { q: 'What background do I need?', a: 'Math and logic foundations help. The first phase covers applied math and Python before machine learning.' },
+      { q: 'How long is the program?', a: '12 months (1 year), delivered as two 6-month phases.' },
+      { q: 'Will I get mentor support?', a: 'Yes. You get 1 to 1 mentorship, with 6 free mentor sessions in each phase.' },
+      { q: 'How do I enroll?', a: 'Click Enroll Now to complete checkout, or talk to a mentor first if you have questions.' },
+    ],
+  },
+};
+
 interface CourseDetailsPageProps {
   onRouteChange: (route: NavigationRoute) => void;
   onOpenBrochure: (programTitle?: string) => void;
@@ -190,13 +253,26 @@ interface CourseDetailsPageProps {
   }) => void;
 }
 
-export const CourseDetailsPage: React.FC<CourseDetailsPageProps> = ({
-  onRouteChange,
-  onOpenBrochure,
-  onOpenMentorModal,
-  onOpenBuyNowModal
-}) => {
-  const [activeSlideIndex, setActiveSlideIndex] = useState(0);
+// Card copy for the catalog (the long-form copy stays in PROGRAM_SLIDES for the curriculum).
+const CATALOG_CARD: Record<string, { badge: string; name: string; blurb: string; duration: string; skills: string[] }> = {
+  'data-analyst-genai': {
+    badge: 'Beginner friendly',
+    name: 'Data Analyst + GenAI',
+    blurb: 'Build analytical skills with SQL, Python, dashboards and practical AI workflows.',
+    duration: '24 Weeks · 6 Months',
+    skills: ['SQL', 'Python', 'Excel', 'Tableau', 'GenAI'],
+  },
+  dsml: {
+    badge: 'Advanced pathway',
+    name: 'Data Science & ML + GenAI',
+    blurb: 'Develop deeper skills in machine learning, data science and AI-driven applications.',
+    duration: '12 Months · 1 Year',
+    skills: ['Python', 'Statistics', 'ML', 'Deep Learning', 'GenAI'],
+  },
+};
+
+// Programs with live prices from the backend, so every page matches what checkout charges.
+export const usePricedPrograms = () => {
   // Prices come from the backend so the page always matches what checkout charges.
   const [prices, setPrices] = useState<Record<string, { price: number; priceOriginal: number | null }> | 'failed' | null>(null);
 
@@ -206,6 +282,8 @@ export const CourseDetailsPage: React.FC<CourseDetailsPageProps> = ({
       .catch(() => setPrices('failed'));
   }, []);
 
+  // The saving is shown in rupees, worked out from the listed prices, so it can never
+  // disagree with the numbers beside it (a rounded percent can).
   const slides = useMemo(() => PROGRAM_SLIDES.map((slide) => {
     const course = prices && prices !== 'failed' ? prices[COURSE_SLUGS[slide.id]] : undefined;
     if (!course) {
@@ -216,478 +294,353 @@ export const CourseDetailsPage: React.FC<CourseDetailsPageProps> = ({
     if (!course.priceOriginal || course.priceOriginal <= course.price) {
       return { ...slide, salePrice: sale, originalPrice: '', discountBadge: '', saveAmountText: '', discountPercentText: '' };
     }
-    const percent = Math.round((1 - course.price / course.priceOriginal) * 100);
     const save = `Save ${formatInr(course.priceOriginal - course.price)}`;
-    return {
-      ...slide,
-      salePrice: sale,
-      originalPrice: formatInr(course.priceOriginal),
-      discountBadge: `${percent}% OFF · ${save}`,
-      saveAmountText: save,
-      discountPercentText: `${percent}% OFF`,
-    };
+    return { ...slide, salePrice: sale, originalPrice: formatInr(course.priceOriginal), discountBadge: save, saveAmountText: save, discountPercentText: '' };
   }), [prices]);
-  const currentSlide = slides[activeSlideIndex];
+  return slides;
+};
 
-  const handlePrevSlide = () => {
-    setActiveSlideIndex((prev) => (prev - 1 + slides.length) % slides.length);
-  };
+export type PricedProgram = ReturnType<typeof usePricedPrograms>[number];
 
-  const handleNextSlide = () => {
-    setActiveSlideIndex((prev) => (prev + 1) % slides.length);
-  };
+export const ProgramCards: React.FC<{ slides: PricedProgram[]; onSelect: (id: string) => void }> = ({ slides, onSelect }) => (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {slides.map((slide, idx) => {
+            const card = CATALOG_CARD[slide.id];
+            const featured = idx === 0;
+            return (
+              <article
+                key={slide.id}
+                className={`${HOVER_CARD} group flex flex-col rounded-3xl overflow-hidden border border-[#5C4B8A]/50 bg-[#150E24]`}
+              >
+                {/* Top: badge, title, blurb */}
+                <div className="bg-[#2A1744]/60 p-6">
+                  <div className="flex items-center justify-between">
+                    <span className={`px-3 py-1 rounded-full text-xs font-semibold ${featured ? 'bg-emerald-950/70 text-emerald-400' : 'bg-white/10 text-white'}`}>
+                      {card.badge}
+                    </span>
+                    {idx === 0 ? <BarChart2 className="w-5 h-5 text-[#C084FC]" /> : <BrainCircuit className="w-5 h-5 text-[#C084FC]" />}
+                  </div>
+                  <h2 className="mt-5 text-xl sm:text-2xl font-bold font-['Sora']">{card.name}</h2>
+                  <p className="mt-2 text-sm text-[#D1CADB] leading-relaxed">{card.blurb}</p>
+                </div>
 
-  const handleBuyNow = () => {
-    onOpenBuyNowModal({
-      courseSlug: COURSE_SLUGS[currentSlide.id] ?? currentSlide.id,
-      title: currentSlide.fullTitle,
-    });
-  };
+                {/* Middle: duration + skills */}
+                <div className="p-6 flex flex-col flex-1">
+                  <div className="flex items-center gap-2 text-sm font-medium">
+                    <Clock className="w-4 h-4 text-[#C084FC]" />
+                    <span>{card.duration}</span>
+                  </div>
 
-  return (
-    <div className="space-y-24 sm:space-y-28 pb-32 bg-[#08070B] text-white">
-      
-      {/* 1. HERO SECTION WITH FULL-SCREEN BACKGROUND & INTERACTIVE SLIDE CONTROLS */}
-      <section className="relative w-full min-h-[calc(100vh-4rem)] flex items-center justify-center overflow-hidden py-12 sm:py-16">
-        {/* Full-screen background image with soft edge blurs */}
-        <LiquidHeroBackground
-          imageSrc={courseHeroImage}
-          className="absolute inset-0 w-full h-full"
-        />
+                  <div className="mt-5 text-xs text-[#A7A0B5]">Skills you will learn</div>
+                  <ul className="mt-2 flex flex-wrap gap-2">
+                    {card.skills.map((s) => (
+                      <li key={s} className="px-3 py-1 rounded-full bg-[#2A1744] text-xs text-[#E5DDF2]">{s}</li>
+                    ))}
+                  </ul>
 
-        {/* Ambient Top & Central Lighting Effects */}
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-5xl h-[500px] bg-[radial-gradient(ellipse_60%_50%_at_50%_50%,rgba(155,89,182,0.22),transparent_70%)] pointer-events-none z-10" />
+                  {/* Price last */}
+                  <div className="mt-6 text-xs text-[#A7A0B5]">Displayed program price</div>
+                  <div className="mt-1 flex flex-wrap items-baseline gap-x-3">
+                    <span className="text-3xl font-extrabold text-[#F5C518] font-mono">{slide.salePrice}</span>
+                    {slide.originalPrice && <span className="text-sm text-[#A7A0B5] line-through font-mono">{slide.originalPrice}</span>}
+                    {slide.saveAmountText && <span className="text-xs font-semibold text-emerald-400">{slide.saveAmountText}</span>}
+                  </div>
+                  <div className="mt-1 mb-5 text-xs text-[#A7A0B5]">Confirm taxes and registration fees</div>
 
-        {/* Centered Hero Content Container */}
-        <div className="relative z-20 w-full max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 text-center flex flex-col items-center justify-center my-auto">
-
-          {/* 🌟 BIG, PROMINENT MASTER COURSE SWITCHER BAR */}
-          <div className="w-full max-w-4xl mx-auto mb-6">
-            <div className="inline-flex items-center gap-2 px-4 py-1 rounded-full bg-[#180E2B]/90 border border-[#5C4B8A]/60 text-xs font-bold text-[#D8B4FE] mb-3 backdrop-blur-md">
-              <Sparkles className="w-3.5 h-3.5 text-[#F1C40F] animate-pulse" />
-              <span>Select Your Flagship Program</span>
-              <Sparkles className="w-3.5 h-3.5 text-[#F1C40F] animate-pulse" />
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 p-2 rounded-2xl bg-[#0D071A]/95 border-2 border-[#5C4B8A]/60 backdrop-blur-lg">
-              {slides.map((slide, idx) => {
-                const isSelected = activeSlideIndex === idx;
-                return (
                   <button
-                    key={slide.id}
-                    onClick={() => setActiveSlideIndex(idx)}
-                    className={`relative flex items-center justify-between p-4 sm:p-5 rounded-xl transition-all duration-300 text-left cursor-pointer group ${
-                      isSelected
-                        ? 'bg-gradient-to-r from-[#2F154E] via-[#3B1F5E] to-[#24103B] border-2 border-[#C084FC] shadow-[0_0_35px_rgba(192,132,252,0.5)] scale-[1.01]'
-                        : 'bg-[#150D24]/90 hover:bg-[#1E1133] border border-[#5C4B8A]/45 hover:border-[#5C4B8A]/60 opacity-75 hover:opacity-100'
-                    }`}
+                    onClick={() => onSelect(slide.id)}
+                    className="w-full mt-auto py-3.5 rounded-xl text-sm font-bold flex items-center justify-center gap-2 transition-all duration-300 cursor-pointer border border-[#C084FC]/70 text-white group-hover:bg-[#F5C518] group-hover:border-[#F5C518] group-hover:text-[#08070B] hover:bg-[#F1C40F]"
                   >
-                    {/* Active Ribbon/Badge */}
-                    {isSelected && (
-                      <span className="absolute -top-3 left-4 px-2.5 py-0.5 rounded-full text-[10px] font-black bg-[#C084FC] text-[#08070B] shadow-[0_0_15px_rgba(192,132,252,0.9)] flex items-center gap-1">
-                        <Check className="w-3 h-3 stroke-[3]" /> Active Selection
-                      </span>
-                    )}
-
-                    <div className="flex items-center gap-3.5">
-                      <div className={`p-3 rounded-xl border shrink-0 ${
-                        isSelected 
-                          ? 'bg-[#9B59B6]/30 border-[#C084FC] text-[#F1C40F]' 
-                          : 'bg-[#231538] border-[#5C4B8A]/40 text-[#A7A0B5]'
-                      }`}>
-                        {idx === 0 ? <BarChart2 className="w-6 h-6" /> : <BrainCircuit className="w-6 h-6" />}
-                      </div>
-                      <div>
-                        <h3 className={`text-base sm:text-lg font-black font-['Sora'] leading-snug ${
-                          isSelected ? 'text-white' : 'text-[#D1CADB]'
-                        }`}>
-                          {idx === 0 ? 'Data Analyst + GenAI' : 'Data Science & ML + GenAI'}
-                        </h3>
-                        <div className="flex flex-wrap items-center gap-2 mt-1 text-xs">
-                          <span className="text-[#D1CADB] font-semibold">{slide.duration}</span>
-                          <span className="text-[#5C4B8A]">•</span>
-                          <span className="text-[#F1C40F] font-extrabold font-mono text-sm">{slide.salePrice}</span>
-                          <span className="text-[#A7A0B5] line-through font-mono text-xs">{slide.originalPrice}</span>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Big Discount Badge */}
-                    <div className="shrink-0 ml-3">
-                      <span className={`inline-flex items-center px-3.5 py-2 rounded-xl text-xs sm:text-sm font-black tracking-wider shadow-lg ${
-                        idx === 0
-                          ? 'bg-gradient-to-r from-emerald-400 to-emerald-500 text-[#08070B] shadow-[0_0_15px_rgba(52,211,153,0.5)]'
-                          : 'bg-gradient-to-r from-[#F1C40F] to-[#F39C12] text-[#08070B] shadow-[0_0_18px_rgba(241,196,15,0.55)]'
-                      }`}>
-                        {slide.discountPercentText}
-                      </span>
-                    </div>
+                    <span>View Program Details</span>
+                    <ArrowRight className="w-4 h-4" />
                   </button>
-                );
-              })}
-            </div>
-          </div>
-          
-          {/* Glassmorphic Centered Card for Hero Details */}
-          <div className="w-full max-w-4xl flex flex-col items-center justify-center p-6 sm:p-10 rounded-2xl bg-[#08070B]/70 backdrop-blur-[8px] border border-[#5C4B8A]/45 shadow-[0_0_60px_rgba(8,7,11,0.9)] relative transition-all duration-300">
-            
-            {/* Slide Arrows & Status Indicator */}
-            <div className="w-full flex items-center justify-between pb-4 mb-5 border-b border-[#5C4B8A]/35">
-              <div className="flex items-center gap-2 text-xs font-semibold text-[#D1CADB]">
-                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
-                <span className="text-white font-bold">{currentSlide.shortTitle}</span>
-                <span className="text-[#5C4B8A]">—</span>
-                <span className="text-[#F1C40F] font-bold">{currentSlide.duration}</span>
-              </div>
-
-              {/* Prev / Next Slide Arrow Controls */}
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={handlePrevSlide}
-                  title="Previous program track"
-                  className="p-2 rounded-xl bg-[#1E1133]/90 hover:bg-[#2E1A47] border border-[#5C4B8A]/60 text-[#D1CADB] hover:text-white transition-all shadow-md active:scale-95 cursor-pointer flex items-center gap-1 text-xs"
-                  aria-label="Previous Track"
-                >
-                  <ChevronLeft className="w-4 h-4" />
-                  <span className="hidden sm:inline">Prev Track</span>
-                </button>
-                <div className="text-xs font-mono text-[#D1CADB] px-1 font-semibold">
-                  <span>0{activeSlideIndex + 1}</span>
-                  <span className="text-[#5C4B8A] mx-1">/</span>
-                  <span className="text-[#A7A0B5]">0{slides.length}</span>
                 </div>
-                <button
-                  onClick={handleNextSlide}
-                  title="Next program track"
-                  className="p-2 rounded-xl bg-[#1E1133]/90 hover:bg-[#2E1A47] border border-[#5C4B8A]/60 text-[#D1CADB] hover:text-white transition-all shadow-md active:scale-95 cursor-pointer flex items-center gap-1 text-xs"
-                  aria-label="Next Track"
-                >
-                  <span className="hidden sm:inline">Next Track</span>
-                  <ChevronRight className="w-4 h-4" />
-                </button>
+              </article>
+            );
+          })}
+        </div>
+);
+
+export const CourseDetailsPage: React.FC<CourseDetailsPageProps> = ({
+  onOpenBrochure,
+  onOpenMentorModal,
+  onOpenBuyNowModal
+}) => {
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const selectProgram = (id: string | null) => {
+    setSelectedId(id);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+  const slides = usePricedPrograms();
+
+  const handleBuyNow = (slide: (typeof slides)[number]) => {
+    onOpenBuyNowModal({ courseSlug: COURSE_SLUGS[slide.id] ?? slide.id, title: slide.fullTitle });
+  };
+
+  const selected = slides.find((s) => s.id === selectedId);
+  if (selected) {
+    const detail = DETAIL[selected.id];
+    const phases = [selected.phase1, selected.phase2];
+    const sectionTitle = (n: number, text: string) => (
+      <h2 className="text-2xl sm:text-3xl font-bold font-['Sora'] tracking-tight mb-6">
+        <span className="text-[#C084FC] mr-3 font-mono text-xl">{String(n).padStart(2, '0')}</span>{text}
+      </h2>
+    );
+
+    return (
+      <div className="space-y-16 sm:space-y-20 pb-20 bg-[#08070B] text-white">
+
+        {/* Hero */}
+        <section className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pt-10 sm:pt-14">
+          <button
+            onClick={() => selectProgram(null)}
+            className="mb-8 inline-flex items-center gap-1.5 text-sm text-[#A7A0B5] hover:text-white transition-colors cursor-pointer"
+          >
+            <ChevronLeft className="w-4 h-4" />
+            <span>All programs</span>
+          </button>
+          <span className="text-xs font-semibold uppercase tracking-widest text-[#C084FC]">{selected.shortTitle}</span>
+          <h1 className="mt-3 max-w-3xl text-3xl sm:text-5xl font-extrabold font-['Sora'] tracking-tight leading-tight">{detail.heroTitle}</h1>
+          <p className="mt-4 max-w-2xl text-base sm:text-lg text-[#A7A0B5] leading-relaxed">{detail.heroSub}</p>
+
+          <div className="mt-8 grid grid-cols-1 sm:grid-cols-3 gap-4 max-w-3xl">
+            {[
+              { icon: CalendarDays, label: detail.durationLabel },
+              { icon: Video, label: 'Live Classes' },
+              { icon: Users, label: 'Mentorship' },
+            ].map(({ icon: Icon, label }) => (
+              <div key={label} className={`${HOVER_CARD} flex flex-col items-center gap-2 py-5 rounded-2xl border border-white/10 bg-[#120C20]`}>
+                <Icon className="w-5 h-5 text-[#C084FC]" />
+                <span className="text-sm font-semibold">{label}</span>
               </div>
-            </div>
-
-            {/* Glowing Level Badge */}
-            <div className="inline-flex items-center gap-2 px-4 py-1.5 bg-[#1B102B]/90 hover:bg-[#2E1A47] border border-[#5C4B8A]/60 text-[#D1CADB] rounded-full text-xs font-semibold backdrop-blur-md mb-6 transition-all">
-              <Sparkles className="w-3.5 h-3.5 text-[#F1C40F] animate-pulse" />
-              <span className="text-white">{currentSlide.levelBadge}</span>
-              <span className="text-[#5C4B8A]">·</span>
-              <span className="text-[#F1C40F] font-bold">{currentSlide.audienceBadge}</span>
-            </div>
-
-            {/* Attractive Centered Hero Typography */}
-            <h1 className="font-extrabold tracking-tight font-['Sora'] text-balance mb-6 max-w-3xl text-center">
-              <span className="block text-xl sm:text-2xl md:text-3xl font-bold text-[#C084FC] mb-2 sm:mb-3 tracking-tight">
-                {currentSlide.kicker}
-              </span>
-              <span className="block text-3xl sm:text-5xl lg:text-6xl font-extrabold leading-[1.12] bg-gradient-to-r from-white via-[#F5EDFD] to-[#D8B4FE] bg-clip-text text-transparent drop-">
-                {currentSlide.titleLine1}
-              </span>
-              <span className="block text-3xl sm:text-5xl lg:text-6xl font-extrabold leading-[1.12] bg-gradient-to-r from-[#F1C40F] via-[#F39C12] to-[#F1C40F] bg-clip-text text-transparent drop-shadow-[0_4px_30px_rgba(241,196,15,0.45)] mt-1 sm:mt-2">
-                {currentSlide.titleLine2}
-              </span>
-            </h1>
-
-            {/* Balanced Centered Subtitle */}
-            <p className="text-base sm:text-lg lg:text-xl text-[#D1CADB] max-w-xl mx-auto leading-relaxed mb-6 drop-shadow-md font-normal text-center">
-              {currentSlide.subtitle}
-            </p>
-
-            {/* Early Bird Pricing Pill / Banner */}
-            <div className="mb-8 inline-flex flex-wrap items-center justify-center gap-3 px-6 py-2.5 rounded-2xl bg-[#1E1133]/90 border border-[#5C4B8A]/60 backdrop-blur-md">
-              <div className="flex items-center gap-1.5 text-xs text-[#A7A0B5]">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                <span>Early Bird Enrollment:</span>
-              </div>
-              <span className="text-2xl sm:text-3xl font-extrabold text-[#F1C40F] font-mono tracking-tight drop-shadow-[0_0_12px_rgba(241,196,15,0.3)]">
-                {currentSlide.salePrice}
-              </span>
-              <span className="text-sm text-[#A7A0B5] line-through font-mono">
-                {currentSlide.originalPrice}
-              </span>
-              <span className="text-xs font-bold text-emerald-300 bg-emerald-950/80 border border-emerald-700/80 px-2.5 py-0.5 rounded-md">
-                {currentSlide.discountBadge}
-              </span>
-            </div>
-
-            {/* Centered Action Buttons */}
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-4 w-full sm:w-auto">
-              <button
-                onClick={handleBuyNow}
-                className="w-full sm:w-auto px-8 py-3.5 text-sm font-bold text-[#08070B] bg-[#F1C40F] hover:bg-[#F39C12] rounded-xl shadow-[0_0_25px_rgba(241,196,15,0.35)] hover:shadow-[0_0_35px_rgba(241,196,15,0.55)] hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-2 group cursor-pointer"
-              >
-                <span>Enroll Now / Buy</span>
-                <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-              </button>
-
-              <button
-                onClick={() => onOpenMentorModal(currentSlide.fullTitle)}
-                className="w-full sm:w-auto px-7 py-3.5 text-sm font-semibold text-white bg-[#190F29]/90 hover:bg-[#2E1A47] border border-[#5C4B8A] hover:border-[#9B59B6] rounded-xl backdrop-blur-md transition-all flex items-center justify-center gap-2 cursor-pointer hover:scale-[1.02] active:scale-[0.98]"
-              >
-                <MessageSquare className="w-4 h-4 text-[#9B59B6]" />
-                <span>Talk to a Mentor</span>
-              </button>
-
-              <button
-                onClick={() => onOpenBrochure(currentSlide.fullTitle)}
-                className="w-full sm:w-auto px-7 py-3.5 text-sm font-medium text-[#D1CADB] hover:text-white bg-[#120A1F]/80 hover:bg-[#1E1133] border border-[#5C4B8A]/60 rounded-xl backdrop-blur-md transition-all flex items-center justify-center gap-2 cursor-pointer hover:scale-[1.02] active:scale-[0.98]"
-              >
-                <Download className="w-4 h-4 text-[#A7A0B5]" />
-                <span>Download Full Brochure</span>
-              </button>
-            </div>
-
-            {/* Platform Highlights */}
-            <div className="mt-8 flex flex-wrap items-center justify-center gap-x-6 gap-y-2.5 text-xs text-[#D1CADB]/90 font-medium">
-              {currentSlide.highlights.map((h, i) => (
-                <div key={i} className="flex items-center gap-2">
-                  <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: h.color }} />
-                  <span>{h.label}</span>
-                </div>
-              ))}
-            </div>
-
-            {/* Slide Pagination Dots */}
-            <div className="mt-6 flex items-center justify-center gap-2">
-              {slides.map((_, idx) => (
-                <button
-                  key={idx}
-                  onClick={() => setActiveSlideIndex(idx)}
-                  className={`h-2 rounded-full transition-all cursor-pointer ${
-                    activeSlideIndex === idx
-                      ? 'w-7 bg-[#F1C40F] shadow-[0_0_10px_rgba(241,196,15,0.7)]'
-                      : 'w-2 bg-[#5C4B8A]/60 hover:bg-[#9B59B6]'
-                  }`}
-                  aria-label={`Go to slide ${idx + 1}`}
-                />
-              ))}
-            </div>
-
+            ))}
           </div>
 
-        </div>
-      </section>
-
-      {/* 2. FLAGSHIP CURRICULUM: PHASE 1 & PHASE 2 (Dynamic per selected slide) */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="text-center max-w-3xl mx-auto mb-6">
-          <span className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#1B102B] border border-[#5C4B8A]/60 text-xs font-semibold text-[#9B59B6] mb-3">
-            <Sparkles className="w-3.5 h-3.5 text-[#F1C40F]" />
-            <span className="text-white">Flagship Curriculum</span>
-            <span className="text-[#5C4B8A]">·</span>
-            <span className="text-[#F1C40F] font-bold">{currentSlide.curriculumDuration}</span>
-          </span>
-          <h2 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-white mt-1 font-['Sora'] tracking-tight">
-            {currentSlide.curriculumTitle}
-          </h2>
-          <p className="text-sm sm:text-base text-[#D1CADB] mt-3 max-w-xl mx-auto leading-relaxed">
-            {currentSlide.curriculumDesc}
-          </p>
-        </div>
-
-        {/* Curriculum Track Switcher */}
-        <div className="flex flex-wrap items-center justify-center gap-3 mb-10">
-          {slides.map((slide, idx) => (
+          <div className="mt-8 flex flex-wrap items-center gap-3">
             <button
-              key={slide.id}
-              onClick={() => setActiveSlideIndex(idx)}
-              className={`px-5 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all duration-200 flex items-center gap-2 cursor-pointer ${
-                activeSlideIndex === idx
-                  ? 'bg-gradient-to-r from-[#9B59B6] to-[#7A3E9D] text-white border border-[#D1CADB]/50'
-                  : 'bg-[#150D24] text-[#A7A0B5] hover:text-white border border-[#5C4B8A]/50 hover:bg-[#1E1133]'
-              }`}
+              onClick={() => handleBuyNow(selected)}
+              className="px-6 py-3 text-sm font-bold text-[#08070B] bg-[#F5C518] hover:bg-[#F1C40F] rounded-xl flex items-center gap-2 cursor-pointer transition-colors"
             >
-              <span>{idx === 0 ? 'Data Analyst + GenAI (24 Weeks)' : 'Data Science & ML + GenAI (12 Months)'}</span>
-              <span className={`text-[10px] px-1.5 py-0.5 rounded font-black ${
-                idx === 1 ? 'bg-[#F1C40F] text-[#08070B]' : 'bg-emerald-400 text-[#08070B]'
-              }`}>
-                {slide.discountPercentText}
-              </span>
-            </button>
-          ))}
-        </div>
-
-        {/* Phase 1 & Phase 2 High-Impact Cards */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
-          
-          {/* Phase 1 Card */}
-          <div className="bg-[#170F28] rounded-2xl p-7 sm:p-8 border border-[#5C4B8A]/60 hover:border-[#9B59B6] transition-all duration-300 relative flex flex-col justify-between">
-            <div>
-              <div className="flex items-center justify-between mb-4">
-                <span className="px-3 py-1 bg-[#2E1A47] border border-[#5C4B8A]/60 text-[#F1C40F] rounded-lg text-xs font-bold font-mono ">
-                  {currentSlide.phase1.tag}
-                </span>
-                <span className="text-xs font-semibold text-emerald-400 bg-emerald-950/60 border border-emerald-500/40 px-2.5 py-1 rounded-full">
-                  {currentSlide.phase1.perk}
-                </span>
-              </div>
-              
-              <h3 className="text-2xl font-bold text-white mb-2 font-['Sora']">
-                {currentSlide.phase1.title}
-              </h3>
-              <p className="text-xs sm:text-sm text-[#D1CADB] mb-6 leading-relaxed">
-                {currentSlide.phase1.desc}
-              </p>
-
-              {/* Stack items with bold icons */}
-              <div className="space-y-3 mb-6">
-                {currentSlide.phase1.items.map((item, idx) => {
-                  const ItemIcon = item.icon;
-                  return (
-                    <div key={idx} className="flex items-center gap-3 p-3 rounded-xl bg-[#231538] border border-[#5C4B8A]/50">
-                      <ItemIcon className="w-5 h-5 text-[#9B59B6] shrink-0" />
-                      <div className="text-xs sm:text-sm">
-                        <strong className="text-white font-semibold">{item.title} </strong>
-                        <span>{item.desc}</span>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-
-            <div className="pt-4 border-t border-[#5C4B8A]/40 flex items-center justify-between text-xs">
-              <span className="text-[#A7A0B5] font-medium flex items-center gap-1.5">
-                <Check className="w-4 h-4 text-[#2ECC71]" />
-                {currentSlide.phase1.project}
-              </span>
-              <button 
-                onClick={() => onOpenBrochure(currentSlide.fullTitle)} 
-                className="text-[#F1C40F] font-bold hover:text-amber-300 flex items-center gap-1 cursor-pointer transition-colors"
-              >
-                <span>Full Syllabus</span>
-                <ArrowRight className="w-4 h-4" />
-              </button>
-            </div>
-          </div>
-
-          {/* Phase 2 Card */}
-          <div className="bg-[#170F28] rounded-2xl p-7 sm:p-8 border border-[#5C4B8A]/60 hover:border-[#9B59B6] transition-all duration-300 relative flex flex-col justify-between">
-            <div>
-              <div className="flex items-center justify-between mb-4">
-                <span className="px-3 py-1 bg-[#2E1A47] border border-[#5C4B8A]/60 text-[#F1C40F] rounded-lg text-xs font-bold font-mono ">
-                  {currentSlide.phase2.tag}
-                </span>
-                <span className="text-xs font-semibold text-emerald-400 bg-emerald-950/60 border border-emerald-500/40 px-2.5 py-1 rounded-full">
-                  {currentSlide.phase2.perk}
-                </span>
-              </div>
-
-              <h3 className="text-2xl font-bold text-white mb-2 font-['Sora']">
-                {currentSlide.phase2.title}
-              </h3>
-              <p className="text-xs sm:text-sm text-[#D1CADB] mb-6 leading-relaxed">
-                {currentSlide.phase2.desc}
-              </p>
-
-              {/* Stack items with bold icons */}
-              <div className="space-y-3 mb-6">
-                {currentSlide.phase2.items.map((item, idx) => {
-                  const ItemIcon = item.icon;
-                  return (
-                    <div key={idx} className="flex items-center gap-3 p-3 rounded-xl bg-[#231538] border border-[#5C4B8A]/50">
-                      <ItemIcon className="w-5 h-5 text-[#9B59B6] shrink-0" />
-                      <div className="text-xs sm:text-sm">
-                        <strong className="text-white font-semibold">{item.title} </strong>
-                        <span>{item.desc}</span>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-
-            <div className="pt-4 border-t border-[#5C4B8A]/40 flex items-center justify-between text-xs">
-              <span className="text-[#A7A0B5] font-medium flex items-center gap-1.5">
-                <Check className="w-4 h-4 text-[#2ECC71]" />
-                {currentSlide.phase2.project}
-              </span>
-              <button 
-                onClick={() => onOpenBrochure(currentSlide.fullTitle)} 
-                className="text-[#F1C40F] font-bold hover:text-amber-300 flex items-center gap-1 cursor-pointer transition-colors"
-              >
-                <span>Full Syllabus</span>
-                <ArrowRight className="w-4 h-4" />
-              </button>
-            </div>
-          </div>
-
-        </div>
-
-        {/* Clean, Bold Syllabus CTA Bar */}
-        <div className="p-6 rounded-2xl bg-gradient-to-r from-[#170F28] via-[#231538] to-[#170F28] border border-[#5C4B8A]/60 flex flex-col sm:flex-row items-center justify-between gap-4 ">
-          <div className="text-center sm:text-left">
-            <h4 className="text-base font-bold text-white font-['Sora']">
-              Want the complete {currentSlide.duration} curriculum roadmap?
-            </h4>
-            <p className="text-xs text-[#D1CADB] mt-0.5">
-              Explore detailed day-by-day modules, real lab exercises, and capstone project specifications for {currentSlide.shortTitle}.
-            </p>
-          </div>
-          <div className="flex items-center gap-3 w-full sm:w-auto">
-            <button
-              onClick={handleBuyNow}
-              className="w-full sm:w-auto px-5 py-2.5 text-xs font-bold text-[#08070B] bg-[#F1C40F] hover:bg-[#F39C12] rounded-xl shadow-[0_0_15px_rgba(241,196,15,0.3)] transition-all flex items-center justify-center gap-1.5 cursor-pointer"
-            >
-              <span>Enroll Now · {currentSlide.salePrice}</span>
-              <ArrowRight className="w-3.5 h-3.5" />
+              <span>Enroll Now · {selected.salePrice}</span>
+              <ArrowRight className="w-4 h-4" />
             </button>
             <button
-              onClick={() => onOpenBrochure(currentSlide.fullTitle)}
-              className="w-full sm:w-auto px-5 py-2.5 text-xs font-semibold text-white bg-[#1B102B] hover:bg-[#2E1A47] border border-[#5C4B8A] rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+              onClick={() => onOpenMentorModal(selected.fullTitle)}
+              className="px-5 py-3 text-sm font-semibold text-white border border-white/15 hover:border-[#9B59B6] rounded-xl flex items-center gap-2 cursor-pointer transition-colors"
             >
-              <Download className="w-3.5 h-3.5 text-[#9B59B6]" />
+              <MessageSquare className="w-4 h-4 text-[#9B59B6]" />
+              <span>Talk to a Mentor</span>
+            </button>
+            <button
+              onClick={() => onOpenBrochure(selected.fullTitle)}
+              className="px-3 py-3 text-sm text-[#A7A0B5] hover:text-white flex items-center gap-1.5 cursor-pointer transition-colors"
+            >
+              <Download className="w-4 h-4" />
               <span>Brochure</span>
             </button>
           </div>
+        </section>
+
+        {/* 1. Who should join */}
+        <section className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+          {sectionTitle(1, 'Who should join this program?')}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+            {detail.audience.map((a) => (
+              <div key={a.title} className={`${HOVER_CARD} rounded-2xl border border-white/10 bg-[#120C20] p-6`}>
+                <h3 className="font-semibold text-white">{a.title}</h3>
+                <p className="mt-2 text-sm text-[#A7A0B5] leading-relaxed">{a.desc}</p>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        {/* 2. Skills and tools */}
+        <section className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+          {sectionTitle(2, 'Skills and tools you will learn')}
+          <ul className="flex flex-wrap gap-3">
+            {detail.tools.map((t) => (
+              <li key={t} className="px-4 py-2 rounded-full bg-[#2A1744] border border-transparent hover:border-[#C084FC] hover:-translate-y-0.5 transition-all duration-300 text-sm text-[#E5DDF2]">{t}</li>
+            ))}
+          </ul>
+        </section>
+
+        {/* 3. Module-wise curriculum */}
+        <section className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+          {sectionTitle(3, 'Complete module-wise curriculum')}
+          <p className="-mt-3 mb-6 max-w-2xl text-sm text-[#A7A0B5] leading-relaxed">{selected.curriculumDesc}</p>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {phases.map((phase) => (
+              <div key={phase.tag} className={`${HOVER_CARD} bg-[#120C20] rounded-2xl p-6 sm:p-7 border border-white/10 flex flex-col`}>
+                <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
+                  <span className="text-xs font-semibold text-[#F1C40F] font-mono">{phase.tag}</span>
+                  <span className="text-[11px] text-emerald-400">{phase.perk}</span>
+                </div>
+                <h3 className="text-xl font-bold text-white font-['Sora'] mb-1.5">{phase.title}</h3>
+                <p className="text-sm text-[#A7A0B5] mb-5 leading-relaxed">{phase.desc}</p>
+                <ul className="space-y-3 mb-5">
+                  {phase.items.map((item, idx) => {
+                    const ItemIcon = item.icon;
+                    return (
+                      <li key={idx} className="flex items-start gap-3 text-sm">
+                        <ItemIcon className="w-4 h-4 text-[#9B59B6] shrink-0 mt-0.5" />
+                        <span className="text-[#D1CADB]"><strong className="text-white font-semibold">{item.title} </strong>{item.desc}</span>
+                      </li>
+                    );
+                  })}
+                </ul>
+                <div className="mt-auto pt-3 border-t border-white/10 text-xs text-[#A7A0B5] flex items-center gap-1.5">
+                  <Check className="w-4 h-4 text-[#2ECC71]" />
+                  {phase.project}
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        {/* 4. Projects */}
+        <section className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+          {sectionTitle(4, 'Projects you will build')}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+            {phases.map((phase, i) => (
+              <div key={phase.tag} className={`${HOVER_CARD} rounded-2xl border border-white/10 bg-[#120C20] p-6`}>
+                <span className="text-xs font-semibold text-[#F1C40F] font-mono">{phase.tag}</span>
+                <h3 className="mt-2 font-semibold text-white">{phase.project}</h3>
+                <p className="mt-2 text-sm text-[#A7A0B5] leading-relaxed">
+                  {i === 0 ? 'Applies the first half of the curriculum to a real-world problem, reviewed by your mentor.' : 'Brings the full toolkit together in a portfolio piece you can show to employers.'}
+                </p>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        {/* 5. Mentors */}
+        <section>
+          <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">{sectionTitle(5, 'Meet your mentors')}</div>
+          <MentorCarousel />
+        </section>
+
+        {/* 6. Schedule and format */}
+        <section className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+          {sectionTitle(6, 'Class schedule and learning format')}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+            {selected.highlights.map((h) => (
+              <div key={h.label} className={`${HOVER_CARD} rounded-2xl border border-white/10 bg-[#120C20] p-5 flex items-center gap-3`}>
+                <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: h.color }} />
+                <span className="text-sm font-medium">{h.label}</span>
+              </div>
+            ))}
+          </div>
+          <p className="mt-4 text-sm text-[#A7A0B5]">Batch dates and weekly timings are shared with you when you enroll or talk to a mentor.</p>
+        </section>
+
+        {/* 7. Fees, inclusions, payment */}
+        <section className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+          {sectionTitle(7, 'Fees, inclusions and payment')}
+          <div className={`${HOVER_CARD} rounded-2xl border border-white/10 bg-[#120C20] p-6 sm:p-8 grid grid-cols-1 md:grid-cols-2 gap-8`}>
+            <div>
+              <div className="text-xs text-[#A7A0B5]">Program fee</div>
+              <div className="mt-1 flex flex-wrap items-baseline gap-x-3">
+                <span className="text-4xl font-extrabold text-[#F5C518] font-mono">{selected.salePrice}</span>
+                {selected.originalPrice && <span className="text-sm text-[#A7A0B5] line-through font-mono">{selected.originalPrice}</span>}
+                {selected.saveAmountText && <span className="text-xs font-semibold text-emerald-400">{selected.saveAmountText}</span>}
+              </div>
+              <div className="mt-1 text-xs text-[#A7A0B5]">Confirm taxes and registration fees at checkout</div>
+              <button
+                onClick={() => handleBuyNow(selected)}
+                className="mt-6 px-6 py-3 text-sm font-bold text-[#08070B] bg-[#F5C518] hover:bg-[#F1C40F] rounded-xl flex items-center gap-2 cursor-pointer transition-colors"
+              >
+                <span>Enroll Now</span>
+                <ArrowRight className="w-4 h-4" />
+              </button>
+            </div>
+            <ul className="space-y-3">
+              {detail.inclusions.map((inc) => (
+                <li key={inc} className="flex items-start gap-2.5 text-sm text-[#D1CADB]">
+                  <Check className="w-4 h-4 text-[#2ECC71] shrink-0 mt-0.5" />
+                  <span>{inc}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </section>
+
+        {/* 8. FAQs and enrollment */}
+        <section className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+          {sectionTitle(8, 'FAQs and enrollment')}
+          <div className="space-y-3">
+            {detail.faqs.map((f) => (
+              <details key={f.q} className={`${HOVER_CARD} group rounded-2xl border border-white/10 bg-[#120C20] px-6 py-4`}>
+                <summary className="cursor-pointer list-none flex items-center justify-between gap-4 font-semibold text-white">
+                  <span>{f.q}</span>
+                  <span className="text-[#C084FC] text-xl leading-none group-open:rotate-45 transition-transform">+</span>
+                </summary>
+                <p className="mt-3 text-sm text-[#A7A0B5] leading-relaxed">{f.a}</p>
+              </details>
+            ))}
+          </div>
+          <div className="mt-10 text-center">
+            <button
+              onClick={() => handleBuyNow(selected)}
+              className="px-8 py-3.5 text-sm font-bold text-[#08070B] bg-[#F5C518] hover:bg-[#F1C40F] rounded-xl inline-flex items-center gap-2 cursor-pointer transition-colors"
+            >
+              <span>Enroll Now · {selected.salePrice}</span>
+              <ArrowRight className="w-4 h-4" />
+            </button>
+          </div>
+        </section>
+
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-20 sm:space-y-24 pb-20 bg-[#08070B] text-white">
+
+      {/* 1. PROGRAM CATALOG: both programs side by side, price after the details */}
+      <section className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 pt-14 sm:pt-20">
+        <div className="text-center max-w-2xl mx-auto mb-10">
+          <span className="text-xs font-semibold uppercase tracking-widest text-[#C084FC]">Explore our programs</span>
+          <h1 className="mt-3 text-3xl sm:text-4xl font-bold font-['Sora'] tracking-tight">Find the Right Program for Your Career.</h1>
+          <p className="mt-4 text-sm sm:text-base text-[#A7A0B5] leading-relaxed">
+            Whether you are starting with data analytics or advancing into machine learning, discover practical, mentor-led programs designed around your goals.
+          </p>
         </div>
+
+        <ProgramCards slides={slides} onSelect={selectProgram} />
       </section>
 
-      {/* 3. STICKY BOTTOM ACTION BAR (Complies with 15% Mobile Sticky Cap) */}
-      <div className="fixed bottom-0 left-0 right-0 z-40 bg-[#0C0717]/95 backdrop-blur-md border-t border-[#5C4B8A]/50 py-2.5 px-4 sm:px-8">
-        <div className="max-w-7xl mx-auto flex items-center justify-between gap-4">
-          
-          {/* Price information */}
-          <div className="flex items-center gap-3">
-            <div>
-              <div className="text-[11px] text-[#A7A0B5] font-medium">
-                Program Total ({currentSlide.shortTitle})
-              </div>
-              <div className="flex items-baseline gap-1.5">
-                <span className="text-lg font-bold text-[#F1C40F] font-mono">
-                  {currentSlide.salePrice}
-                </span>
-                <span className="text-xs text-[#A7A0B5] line-through font-mono hidden sm:inline">
-                  {currentSlide.originalPrice}
-                </span>
-                <span className="text-[10px] text-emerald-400 font-bold bg-emerald-950/80 border border-emerald-800/80 px-1.5 py-0.5 rounded hidden sm:inline">
-                  {currentSlide.discountPercentText}
-                </span>
-                <span className="text-[10px] text-[#D1CADB] italic hidden sm:inline">+ Reg fee</span>
-              </div>
+      {/* CTA: moved here from the home page */}
+      <section className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="bg-gradient-to-r from-[#2E1A47] via-[#1B102B] to-[#2E1A47] border border-[#5C4B8A]/60 text-white rounded-2xl p-8 sm:p-12 text-center">
+          <div className="max-w-2xl mx-auto space-y-5">
+            <span className="px-3.5 py-1 bg-[#120A1F] border border-[#5C4B8A]/60 rounded-full text-xs font-medium text-[#F1C40F]">
+              Transform Your Career Trajectory
+            </span>
+            <h2 className="text-3xl sm:text-4xl font-extrabold tracking-tight font-['Sora'] text-white">
+              Ready to Master Data Analytics & GenAI?
+            </h2>
+            <p className="text-sm text-[#D1CADB] leading-relaxed">
+              Join the upcoming live cohort with structured 4-teacher support, hands-on portfolio projects, and dedicated mock interviews.
+            </p>
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-3.5 pt-3">
+              <button
+                onClick={() => selectProgram(PROGRAM_SLIDES[0].id)}
+                className="w-full sm:w-auto px-6 py-3.5 text-sm font-bold text-[#08070B] bg-[#F1C40F] hover:bg-[#F39C12] rounded-xl shadow-[0_0_20px_rgba(241,196,15,0.3)] transition-all flex items-center justify-center gap-2 cursor-pointer"
+              >
+                <span>View Full Program & Pricing</span>
+                <ArrowRight className="w-4 h-4" />
+              </button>
+              <button
+                onClick={() => onOpenMentorModal()}
+                className="w-full sm:w-auto px-6 py-3.5 text-sm font-semibold text-white bg-[#190F29] hover:bg-[#2E1A47] border border-[#5C4B8A] rounded-xl transition-colors flex items-center justify-center gap-2 cursor-pointer"
+              >
+                <MessageSquare className="w-4 h-4 text-[#9B59B6]" />
+                <span>Schedule Mentor Call</span>
+              </button>
             </div>
           </div>
-
-          {/* Action buttons */}
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => onOpenMentorModal(currentSlide.fullTitle)}
-              className="px-3.5 py-2 text-xs font-semibold text-white bg-[#2E1A47] hover:bg-[#3B225C] border border-[#5C4B8A] rounded-lg transition-colors whitespace-nowrap shrink-0 cursor-pointer"
-            >
-              Talk to a Mentor
-            </button>
-            <button
-              onClick={handleBuyNow}
-              className="px-4 py-2 text-xs font-bold text-[#08070B] bg-[#F1C40F] hover:bg-[#F39C12] rounded-lg shadow-[0_0_15px_rgba(241,196,15,0.25)] transition-colors whitespace-nowrap shrink-0 flex items-center gap-1.5 cursor-pointer"
-            >
-              <span>Buy Now</span>
-              <ArrowRight className="w-3.5 h-3.5" />
-            </button>
-          </div>
-
         </div>
-      </div>
+      </section>
 
     </div>
   );

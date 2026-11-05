@@ -1,41 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
-import { hashPassword, verifyPassword, DUMMY_PASSWORD_HASH, signJWT, verifyGoogleIdToken, sessionCookieOptions } from '@/lib/auth';
+import { hashPassword, signJWT, verifyGoogleIdToken, sessionCookieOptions } from '@/lib/auth';
 import * as crypto from 'crypto';
 
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { type, email, password } = body;
+    const { type } = body;
 
     let user = null;
 
-    if (type === 'credentials') {
-      if (!email || !password) {
-        return NextResponse.json({ error: 'Email and password are required' }, { status: 400 });
-      }
-
-      user = await prisma.user.findUnique({
-        where: { email: email.toLowerCase() },
-      });
-
-      if (typeof email !== 'string' || typeof password !== 'string') {
-        return NextResponse.json({ error: 'Invalid email or password' }, { status: 401 });
-      }
-
-      const { valid, needsRehash } = await verifyPassword(password, user?.passwordHash ?? DUMMY_PASSWORD_HASH);
-      if (!user || !valid) {
-        return NextResponse.json({ error: 'Invalid email or password' }, { status: 401 });
-      }
-
-      // Upgrade accounts still on the old SHA-256 hash.
-      if (needsRehash) {
-        await prisma.user.update({
-          where: { id: user.id },
-          data: { passwordHash: await hashPassword(password) },
-        });
-      }
-    } else if (type === 'google') {
+    if (type === 'google') {
       const { credential } = body;
       if (!credential || typeof credential !== 'string') {
         return NextResponse.json({ error: 'Google credential is required' }, { status: 400 });
@@ -46,13 +21,10 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: 'Invalid Google sign-in' }, { status: 401 });
       }
 
-      // The typed email must match the Google account. Mobile is only needed (and only
-      // collected) when a new account is created at sign-up.
+      // The email comes from the verified Google account; if a client still sends one it must
+      // match. Mobile is only needed (and only collected) when a new account is created at sign-up.
       const typedEmail = typeof body.email === 'string' ? body.email.trim().toLowerCase() : '';
-      if (!typedEmail) {
-        return NextResponse.json({ error: 'Email is required' }, { status: 400 });
-      }
-      if (typedEmail !== googleUser.email) {
+      if (typedEmail && typedEmail !== googleUser.email) {
         return NextResponse.json({ error: `The Google account (${googleUser.email}) doesn't match the email you entered.` }, { status: 400 });
       }
 

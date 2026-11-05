@@ -1,11 +1,17 @@
-export type NavigationRoute = 'home' | 'course-details' | 'skill-store' | 'student-dashboard' | 'login' | 'privacy' | 'terms' | 'refund' | 'contact' | 'about';
+export type NavigationRoute = 'home' | 'course-details' | 'skill-store' | 'student-dashboard' | 'login' | 'faculty-reviews' | 'admin-dashboard' | 'privacy' | 'terms' | 'refund' | 'contact' | 'about' | 'mentors';
+
+export type UserRole = 'STUDENT' | 'ADMIN' | 'INSTRUCTOR' | 'MENTOR';
 
 export interface StudentUser {
+  id?: string;
   fullName: string;
   email: string;
   mobile: string;
+  role?: UserRole;
   isLoggedIn: boolean;
   avatarUrl?: string;
+  enrolledCourse?: string;
+  studentProfile?: any;
   enrolled?: boolean;
 }
 

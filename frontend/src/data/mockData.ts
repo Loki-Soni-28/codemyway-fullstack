@@ -699,27 +699,27 @@ export const DEMO_NOTIFICATIONS: NotificationItem[] = [
 
 export const FAQS = [
   {
-    q: 'Can beginners with no coding background join the Data Analyst + GenAI program?',
-    a: 'Yes. The curriculum begins with fundamental data modeling, SQL syntax, and spreadsheet foundations before advancing into Python and algorithmic thinking. Over 60% of our enrolled learners transition from non-coding or non-tech backgrounds.'
+    q: 'Can I join without any coding experience?',
+    a: 'Yes. Our Data Analyst + GenAI program is designed to help beginners build a foundation in spreadsheets, data concepts, and SQL before progressing to more advanced tools. The advanced Data Science program may have different prerequisites.'
   },
   {
-    q: 'How does the Four-Teacher mentoring model work?',
-    a: 'Instead of relying on a single instructor for everything, you learn through four dedicated specialists: Concept Instructors for conceptual theory, Hands-on Lab Facilitators for daily coding queries, Industry Project Reviewers for line-by-line portfolio feedback, and Career Coaches for interview preparation.'
+    q: 'Will I receive personalized mentorship?',
+    a: 'Yes. You get dedicated 1:1 mentorship, including free mentor sessions in each phase, along with guidance from instructors, lab facilitators, project reviewers, and career coaches.'
   },
   {
-    q: 'What is the schedule and weekly time commitment?',
-    a: 'Expect approximately 8–10 hours per week: 3 hours of live interactive weekend lectures, 2 hours of weekday guided hands-on labs, and 3–5 hours for assignments, projects, and 1:1 mentor checkpoints.'
+    q: 'Are the classes live or recorded?',
+    a: 'Classes are live and interactive, with weekend lectures and guided hands-on labs during the week. You can ask questions and get feedback in real time.'
   },
   {
-    q: 'What is the fee breakdown and early-bird policy?',
-    a: 'The standard program price is ₹36,000, with a special early-bird enrolled price of ₹24,999 (30% discount) for early registrants. Registration fees are charged separately and confirmed by the admissions team prior to onboarding.'
+    q: 'Will I work on real-world projects?',
+    a: 'Yes. You apply what you learn to realistic datasets and build portfolio projects at the end of each phase, reviewed by your mentors.'
   },
   {
-    q: 'How are mock interviews conducted?',
-    a: 'Students receive structured technical and behavioral mock interviews after completing Phase 1 and Phase 2 milestones. These replicate realistic technical hiring loops with real feedback and actionable revision plans.'
+    q: 'What are the course fees and payment options?',
+    a: 'Current fees are listed on each program page. Registration fees are charged separately, and our admissions team confirms them, along with the available payment options, before onboarding.'
   },
   {
-    q: 'Does CodeMyWay guarantee jobs or placements?',
-    a: 'No. CodeMyWay focuses on rigorous, verifiable skill mastery, portfolio architecture, resume optimization, and mock interview readiness. We do not make false job or salary placement guarantees.'
+    q: 'Do you provide interview and placement support?',
+    a: 'Yes. You get technical and behavioral mock interviews, resume and portfolio guidance, and career coaching. We focus on building skills you can prove, and we do not guarantee jobs or salaries.'
   }
 ];

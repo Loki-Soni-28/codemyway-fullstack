@@ -7,8 +7,13 @@ export async function GET(
   { params }: { params: Promise<{ classId: string }> }
 ) {
   const user = await getSessionUser();
-  if (!user || user.role !== 'STUDENT') {
+  if (!user || (user.role !== 'STUDENT' && user.role !== 'ADMIN')) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
+  const profile = user.studentProfile;
+  if (!profile || !profile.batchId) {
+    return NextResponse.json({ error: 'No active cohort batch assigned' }, { status: 403 });
   }
 
   const { classId } = await params;
@@ -34,6 +39,11 @@ export async function GET(
 
     if (!lecture) {
       return NextResponse.json({ error: 'Class not found' }, { status: 404 });
+    }
+
+    // Security check: ensure this class belongs to the authenticated student's assigned batch
+    if (lecture.batchId !== profile.batchId) {
+      return NextResponse.json({ error: 'Access denied: Class belongs to another batch' }, { status: 403 });
     }
 
     // Format pre-read and post-read

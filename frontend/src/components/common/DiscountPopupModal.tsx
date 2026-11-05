@@ -37,6 +37,12 @@ export const DiscountPopupModal: React.FC<DiscountPopupModalProps> = ({
   const [error, setError] = useState('');
   const timeLeft = useCountdown(endsAt);
 
+  // The modal stays mounted while closed, so clear any previous error each time it opens or closes.
+  useEffect(() => {
+    setError('');
+    setSending(false);
+  }, [isOpen]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.name || !formData.phone || !formData.email || sending) return;

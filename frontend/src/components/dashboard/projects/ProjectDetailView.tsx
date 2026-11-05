@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { api } from '../../../api';
 import { 
   ArrowLeft, 
   Calendar, 
@@ -127,8 +128,8 @@ export const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({
     }
   };
 
-  // Handle Final Submission
-  const handleSubmitProject = () => {
+  // Handle Final Submission to Real Backend API
+  const handleSubmitProject = async () => {
     setFormError(null);
 
     // Validation
@@ -158,24 +159,62 @@ export const ProjectDetailView: React.FC<ProjectDetailViewProps> = ({
     }
 
     setIsSubmitting(true);
-    setTimeout(() => {
-      try {
-        const updated = submitProject(project.id, studentEmail, {
-          projectDescription,
-          githubRepoUrl,
-          liveDashboardUrl,
-          demoVideoUrl,
+    try {
+      const res = await api<{
+        success: boolean;
+        message: string;
+        submission: {
+          id: string;
+          version: number;
+          status: string;
+          submittedAt: string;
+        };
+      }>('/student/projects/submit', {
+        method: 'POST',
+        body: {
+          projectId: project.id,
+          projectDescription: projectDescription.trim(),
+          githubRepoUrl: githubRepoUrl?.trim() || null,
+          liveDashboardUrl: liveDashboardUrl?.trim() || null,
+          demoVideoUrl: demoVideoUrl?.trim() || null,
           files: uploadedFiles
-        });
-        onStateUpdated(updated);
-        setIsSubmitting(false);
-        setSuccessToast('Project submitted successfully! Assigned to senior mentor panel for evaluation.');
+        }
+      });
+
+      if (res && res.success) {
+        setSuccessToast(res.message || 'Project submitted successfully!');
         setTimeout(() => setSuccessToast(null), 4000);
-      } catch (err) {
-        setIsSubmitting(false);
-        setFormError('Submission failed. Please check network connection.');
+
+        // Notify parent to refetch live project records
+        onStateUpdated({
+          ...studentState,
+          status: res.submission.status as ProjectStatus,
+          lastUpdated: res.submission.submittedAt,
+          submissions: [
+            {
+              version: res.submission.version,
+              submittedAt: res.submission.submittedAt,
+              projectDescription: projectDescription.trim(),
+              githubRepoUrl: githubRepoUrl?.trim() || undefined,
+              liveDashboardUrl: liveDashboardUrl?.trim() || undefined,
+              demoVideoUrl: demoVideoUrl?.trim() || undefined,
+              uploadedFiles: uploadedFiles.map(f => ({
+                fileName: f.fileName,
+                fileSize: f.fileSize,
+                fileType: f.fileType,
+                uploadedAt: res.submission.submittedAt
+              })),
+              status: res.submission.status as ProjectStatus
+            }
+          ]
+        });
       }
-    }, 600);
+    } catch (err: any) {
+      console.error('Submission error:', err);
+      setFormError(err.message || 'Submission failed. Please check network connection.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   // Simulated File Upload handler

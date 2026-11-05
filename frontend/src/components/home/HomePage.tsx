@@ -11,15 +11,83 @@ import {
   Users,
   BrainCircuit,
   FileText,
+  Briefcase,
+  CheckCircle2,
+  BarChart3,
+  Lightbulb,
+  ClipboardCheck,
+  MessagesSquare,
   Video,
-  Briefcase
+  Laptop,
+  GraduationCap,
+  RefreshCw
 } from 'lucide-react';
 import { FAQS } from '../../data/mockData';
 import { LiquidHeroBackground } from './LiquidHeroBackground';
 import { CompanyMarquee } from '../common/CompanyMarquee';
-import { MentorCarousel } from '../common/MentorCarousel';
 import { LearningDifference } from '../common/LearningDifference';
+import { PROGRAM_SLIDES } from '../courses/CourseDetailsPage';
+import { ABOUT_CONFIG } from '../about/aboutConfig';
 import heroImage from '../../assets/images/hero_codemyway_learning_1792917844873.jpg';
+
+const BEGINNER_CARDS = [
+  {
+    icon: Lightbulb,
+    title: 'Understand First. Code with Confidence.',
+    desc: 'Start with familiar business examples and simple explanations. Build your analytical thinking before moving into SQL, Python, and other tools.',
+    highlight: 'Learn concepts the practical way',
+  },
+  {
+    icon: Users,
+    title: 'Personalized Guidance at Every Step',
+    desc: 'Ask questions, work through challenges, and receive individual feedback from mentors who understand your learning goals.',
+    highlight: 'Learn with real mentor support',
+  },
+  {
+    icon: Laptop,
+    title: 'Build Projects That Prove Your Skills',
+    desc: 'Apply what you learn to realistic datasets and create portfolio projects that demonstrate your ability to solve business problems.',
+    highlight: 'Turn knowledge into practical work',
+  },
+];
+
+const PRACTICE_POINTS = [
+  { icon: Laptop, title: 'Hands-On Projects', desc: 'Apply what you learn through practical projects designed around real-world business challenges.' },
+  { icon: ClipboardCheck, title: 'Structured Assignments', desc: 'Strengthen your understanding with exercises and tasks that build your skills step by step.' },
+  { icon: MessagesSquare, title: 'Mentor-Guided Reviews', desc: 'Receive constructive feedback to refine your approach, improve your work, and develop better problem-solving habits.' },
+  { icon: Briefcase, title: 'Build Your Portfolio', desc: 'Turn your learning into meaningful work samples that help demonstrate your technical and analytical abilities.' },
+];
+
+const SUPPORT_CARDS = [
+  {
+    icon: Users,
+    title: 'Personalized 1:1 Mentorship',
+    desc: 'Get individual guidance from experienced industry professionals. Clarify doubts, strengthen your technical skills, receive project feedback, and build a learning roadmap aligned with your goals.',
+    highlight: 'Guidance Beyond the Classroom',
+    tags: ['Career Roadmap', 'Project Feedback'],
+  },
+  {
+    icon: BrainCircuit,
+    title: 'AI-Powered Learning. Human-Led Guidance.',
+    desc: 'Combine the convenience of AI-assisted learning with the expertise of real mentors. Get support for coding challenges, technical concepts, and assignments, with scheduled sessions for deeper problem-solving.',
+    highlight: 'AI assistance + human expertise',
+    tags: ['Coding Support', 'Concept Clarity'],
+  },
+  {
+    icon: BarChart3,
+    title: 'Your Progress, Clearly Measured.',
+    desc: "Stay informed about your learning journey through regular assessments, milestone tracking, and personalized feedback. Understand what you've mastered and where to focus next.",
+    highlight: 'Structured progress reviews',
+    tags: ['Skill Progress', 'Assignment Feedback', 'Learning Milestones'],
+  },
+  {
+    icon: Briefcase,
+    title: 'Career Support That Goes Beyond Training.',
+    desc: 'Prepare for your next career opportunity with resume and LinkedIn guidance, technical mock interviews, portfolio reviews, and practical advice from experienced professionals.',
+    highlight: 'Prepare for real opportunities',
+    tags: ['Mock Interviews', 'Resume & LinkedIn Guidance', 'Portfolio Reviews'],
+  },
+];
 
 interface HomePageProps {
   onRouteChange: (route: NavigationRoute) => void;
@@ -33,6 +101,7 @@ export const HomePage: React.FC<HomePageProps> = ({
   onOpenMentorModal 
 }) => {
   const [openFaqIndex, setOpenFaqIndex] = useState<number | null>(0);
+  const [projectTab, setProjectTab] = useState(0);
 
   return (
     <div className="space-y-24 sm:space-y-32 pb-24 sm:pb-32 bg-[#08070B] text-white">
@@ -64,9 +133,6 @@ export const HomePage: React.FC<HomePageProps> = ({
 
             {/* Attractive Centered Hero Typography */}
             <h1 className="font-extrabold tracking-tight font-['Sora'] text-balance mb-6 max-w-3xl text-center">
-              <span className="block text-xl sm:text-2xl md:text-3xl font-bold text-[#C084FC] mb-2 sm:mb-3 tracking-tight">
-                CodeMyWay
-              </span>
               <span className="block text-4xl sm:text-6xl lg:text-7xl font-extrabold leading-[1.08] bg-gradient-to-r from-white via-[#F5EDFD] to-[#D8B4FE] bg-clip-text text-transparent drop-">
                 Hack the pivot.
               </span>
@@ -92,23 +158,17 @@ export const HomePage: React.FC<HomePageProps> = ({
             </div>
 
             {/* Platform Highlights */}
-            <div className="mt-8 flex flex-wrap items-center justify-center gap-x-6 gap-y-2.5 text-xs text-[#D1CADB]/90 font-medium">
-              <div className="flex items-center gap-2">
-                <span className="w-1.5 h-1.5 rounded-full bg-[#F1C40F]" />
-                <span>Live Interactive Sessions</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="w-1.5 h-1.5 rounded-full bg-[#9B59B6]" />
-                <span>Real-world Portfolio Projects</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="w-1.5 h-1.5 rounded-full bg-[#2ECC71]" />
-                <span>1:1 Mentor Guidance</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="w-1.5 h-1.5 rounded-full bg-[#38BDF8]" />
-                <span>Guided & Mentorship Sessions by Industry Experts</span>
-              </div>
+            <div className="mt-8 pt-6 w-full border-t border-white/10 grid grid-cols-3 gap-2 text-xs font-medium text-[#E5DDF2]">
+              {[
+                { icon: Video, label: 'Live Learning' },
+                { icon: Laptop, label: 'Hands-On Projects' },
+                { icon: Users, label: 'Mentor Guidance' },
+              ].map(({ icon: Icon, label }) => (
+                <div key={label} className="flex items-center justify-center gap-2">
+                  <Icon className="w-4 h-4 text-[#F1C40F] shrink-0" />
+                  <span>{label}</span>
+                </div>
+              ))}
             </div>
 
           </div>
@@ -116,332 +176,206 @@ export const HomePage: React.FC<HomePageProps> = ({
         </div>
       </section>
 
-      <CompanyMarquee />
+      {/* 3. WHO CAN JOIN */}
+      <section className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 ">
+        <div className="text-center max-w-2xl mx-auto mb-8">
+          <span className="text-xs font-semibold text-[#C084FC] uppercase tracking-widest">Who can join?</span>
+          <h2 className="text-2xl sm:text-3xl font-bold font-['Sora'] mt-2">Wherever You Are Today, Your Learning Journey Can Start Here.</h2>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+          {[
+            { icon: GraduationCap, title: 'Students & Fresh Graduates', desc: 'Build a strong foundation in analytics and develop practical skills beyond classroom theory.' },
+            { icon: Briefcase, title: 'Working Professionals', desc: 'Add data and AI skills to your existing experience and explore new professional opportunities.' },
+            { icon: RefreshCw, title: 'Career Switchers', desc: 'Transition into technical learning with structured lessons, beginner-friendly guidance, and hands-on practice.' },
+          ].map(({ icon: Icon, title, desc }) => (
+            <div
+              key={title}
+              className="group p-6 rounded-2xl bg-[#170F28] border border-[#5C4B8A]/50 transition-all duration-300 hover:-translate-y-1.5 hover:border-[#C084FC] hover:bg-[#1E1334] hover:shadow-[0_0_32px_rgba(192,132,252,0.22)]"
+            >
+              <Icon className="w-6 h-6 text-[#C084FC] group-hover:text-[#F1C40F] transition-colors" />
+              <h3 className="mt-4 font-bold text-white font-['Sora']">{title}</h3>
+              <p className="mt-2 text-sm text-[#D1CADB] leading-relaxed">{desc}</p>
+            </div>
+          ))}
+        </div>
+      </section>
 
-      {/* 3. BUILT FOR BEGINNERS & SWITCHERS (BOLD HIGHLIGHTS) */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      {/* 4. WHY CODEMYWAY: START FROM ZERO */}
+      <section className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center max-w-3xl mx-auto mb-10">
-          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#1B102B] border border-[#5C4B8A]/60 text-xs font-semibold text-[#9B59B6] mb-3">
+          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#1B102B] border border-[#5C4B8A]/60 text-[11px] font-bold uppercase tracking-wide text-[#F1C40F] mb-5">
             <Sparkles className="w-3.5 h-3.5 text-[#F1C40F]" />
-            <span className="text-white">Beginner-First Pedagogy</span>
-            <span className="text-[#5C4B8A]">·</span>
-            <span className="text-[#F1C40F] font-bold">Zero Coding Background Needed</span>
+            <span>No tech background? You belong here.</span>
           </div>
-          <h2 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-white font-['Sora'] tracking-tight">
-            Engineered for Beginners & Switchers
+          <h2 className="font-extrabold font-['Sora'] tracking-tight leading-tight">
+            <span className="block text-3xl sm:text-4xl lg:text-5xl text-white">Start from Zero.</span>
+            <span className="block mt-2 text-3xl sm:text-4xl lg:text-5xl text-[#C084FC]">Build Skills That Matter.</span>
           </h2>
-          <p className="text-sm sm:text-base text-[#D1CADB] mt-3 max-w-xl mx-auto leading-relaxed">
-            No engineering degree or prior tech experience needed. We build your analytical intuition first, then layer on real industry tools.
+          <p className="text-sm sm:text-base text-[#D1CADB] mt-5 max-w-2xl mx-auto leading-relaxed">
+            Whether you're a student, a working professional, or exploring a career change, CodeMyWay helps you learn data analytics step by step, with practical lessons, expert guidance, and hands-on projects.
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="p-7 rounded-2xl bg-[#170F28] border border-[#5C4B8A]/60 hover:border-[#9B59B6] hover:-translate-y-1 space-y-4 transition-all duration-300">
-            <div className="w-12 h-12 rounded-xl bg-[#2E1A47] border border-[#5C4B8A]/60 text-[#F1C40F] flex items-center justify-center font-extrabold text-base font-mono ">
-              01
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+          {BEGINNER_CARDS.map(({ icon: Icon, title, desc, highlight }) => (
+            <div
+              key={title}
+              className="group flex flex-col p-6 rounded-2xl bg-[#170F28] border border-[#5C4B8A]/50 transition-all duration-300 hover:-translate-y-1.5 hover:border-[#C084FC] hover:bg-[#1E1334] hover:shadow-[0_0_32px_rgba(192,132,252,0.22)]"
+            >
+              <div className="w-11 h-11 rounded-xl bg-[#2E1A47] text-[#C084FC] flex items-center justify-center transition-all duration-300 group-hover:scale-110 group-hover:text-[#F1C40F]">
+                <Icon className="w-5 h-5" />
+              </div>
+              <h3 className="mt-5 text-lg font-bold text-white font-['Sora'] leading-snug">{title}</h3>
+              <p className="mt-2 text-sm text-[#D1CADB] leading-relaxed">{desc}</p>
+              <div className="mt-auto pt-5">
+                <div className="pt-4 border-t border-[#5C4B8A]/35 flex items-center gap-2 text-xs font-semibold text-[#F1C40F]">
+                  <CheckCircle2 className="w-4 h-4 text-[#2ECC71] shrink-0" />
+                  <span>{highlight}</span>
+                </div>
+              </div>
             </div>
-            <div>
-              <h3 className="font-bold text-white text-lg font-['Sora'] mb-1">Intuition Before Syntax</h3>
-              <p className="text-xs sm:text-sm text-[#D1CADB] leading-relaxed">
-                Learn data relationships visually using familiar business situations before touching complex SQL or Python code.
-              </p>
-            </div>
-            <div className="pt-2 flex items-center gap-2 text-xs font-semibold text-[#F1C40F]">
-              <Check className="w-4 h-4 text-[#2ECC71]" />
-              <span>Real-world Business Models</span>
-            </div>
+          ))}
+        </div>
+
+        <div className="mt-10 text-center">
+          <p className="text-sm text-[#D1CADB]">You don't need to know everything before you begin. You just need the willingness to learn.</p>
+          <button
+            onClick={() => onRouteChange('course-details')}
+            className="mt-4 px-7 py-3 text-sm font-bold text-[#08070B] bg-[#F5C518] hover:bg-[#F1C40F] rounded-xl transition-all inline-flex items-center gap-2 cursor-pointer hover:scale-[1.03] active:scale-[0.98]"
+          >
+            <span>Explore Beginner-Friendly Programs</span>
+            <ArrowRight className="w-4 h-4" />
+          </button>
+        </div>
+      </section>
+
+      {/* 5. MENTORS: industry experience strip */}
+      <CompanyMarquee onMeetMentors={() => { onRouteChange('mentors'); window.scrollTo({ top: 0 }); }} />
+
+      {/* 6. LEARNING JOURNEY */}
+      <LearningDifference />
+
+      {/* 7. PROJECTS */}
+      <section className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="bg-[#0E0A18] rounded-3xl p-6 sm:p-10 border border-[#5C4B8A]/50">
+          <div className="text-center max-w-2xl mx-auto mb-8">
+            <span className="text-xs font-semibold uppercase tracking-widest text-[#C084FC]">Learn by doing</span>
+            <h2 className="mt-2 text-3xl sm:text-4xl font-extrabold text-white font-['Sora'] tracking-tight">Turn Your Skills into Real-World Experience.</h2>
+            <p className="mt-3 text-sm sm:text-base text-[#D1CADB] leading-relaxed">
+              Apply your knowledge through hands-on projects, structured assignments, and personalized mentor feedback. Build practical skills and a portfolio that showcases your capabilities.
+            </p>
           </div>
 
-          <div className="p-7 rounded-2xl bg-[#170F28] border border-[#5C4B8A]/60 hover:border-[#9B59B6] hover:-translate-y-1 space-y-4 transition-all duration-300">
-            <div className="w-12 h-12 rounded-xl bg-[#2E1A47] border border-[#5C4B8A]/60 text-[#F1C40F] flex items-center justify-center font-extrabold text-base font-mono ">
-              02
-            </div>
-            <div>
-              <h3 className="font-bold text-white text-lg font-['Sora'] mb-1">Dedicated 1:1 Mentors</h3>
-              <p className="text-xs sm:text-sm text-[#D1CADB] leading-relaxed">
-                Never get stuck alone on errors. Personal mentors sit with you to troubleshoot queries, debug logic, and review assignments.
-              </p>
-            </div>
-            <div className="pt-2 flex items-center gap-2 text-xs font-semibold text-[#F1C40F]">
-              <Check className="w-4 h-4 text-[#2ECC71]" />
-              <span>Daily Live Doubt Resolution</span>
-            </div>
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            {PRACTICE_POINTS.map(({ icon: Icon, title, desc }) => (
+              <div
+                key={title}
+                className="group p-5 rounded-2xl bg-[#170F28] border border-[#5C4B8A]/50 transition-all duration-300 hover:-translate-y-1.5 hover:border-[#C084FC] hover:bg-[#1E1334] hover:shadow-[0_0_32px_rgba(192,132,252,0.22)]"
+              >
+                <Icon className="w-5 h-5 text-[#C084FC] group-hover:text-[#F1C40F] transition-colors" />
+                <h3 className="mt-3 text-sm font-bold text-white font-['Sora']">{title}</h3>
+                <p className="mt-1.5 text-xs text-[#D1CADB] leading-relaxed">{desc}</p>
+              </div>
+            ))}
           </div>
 
-          <div className="p-7 rounded-2xl bg-[#170F28] border border-[#5C4B8A]/60 hover:border-[#9B59B6] hover:-translate-y-1 space-y-4 transition-all duration-300">
-            <div className="w-12 h-12 rounded-xl bg-[#2E1A47] border border-[#5C4B8A]/60 text-[#F1C40F] flex items-center justify-center font-extrabold text-base font-mono ">
-              03
-            </div>
-            <div>
-              <h3 className="font-bold text-white text-lg font-['Sora'] mb-1">Verified Capstone Portfolio</h3>
-              <p className="text-xs sm:text-sm text-[#D1CADB] leading-relaxed">
-                Build 2 production-grade capstone projects on GitHub with authentic datasets that impress tech recruiters.
-              </p>
-            </div>
-            <div className="pt-2 flex items-center gap-2 text-xs font-semibold text-[#F1C40F]">
-              <Check className="w-4 h-4 text-[#2ECC71]" />
-              <span>Tested in Technical Mock Interviews</span>
-            </div>
+          {/* Program tabs: projects for the selected program */}
+          <div className="mt-10 grid grid-cols-2 gap-2 p-1 rounded-full bg-[#170F28] border border-[#5C4B8A]/40">
+            {PROGRAM_SLIDES.map((program, idx) => (
+              <button
+                key={program.id}
+                onClick={() => setProjectTab(idx)}
+                className={`py-2.5 rounded-full text-sm font-semibold transition-all cursor-pointer ${
+                  projectTab === idx ? 'bg-[#2E1A47] text-white' : 'text-[#A7A0B5] hover:text-white'
+                }`}
+              >
+                {program.tabLabel.replace(' + GenAI', idx === 0 ? ' + GenAI' : '')}
+              </button>
+            ))}
+          </div>
+
+          <div className="mt-5 grid grid-cols-1 md:grid-cols-2 gap-5">
+            {[PROGRAM_SLIDES[projectTab].phase1, PROGRAM_SLIDES[projectTab].phase2].map((phase) => (
+              <div
+                key={phase.tag}
+                className="group flex flex-col p-6 rounded-2xl bg-[#170F28] border border-[#5C4B8A]/50 transition-all duration-300 hover:-translate-y-1.5 hover:border-[#C084FC] hover:bg-[#1E1334] hover:shadow-[0_0_32px_rgba(192,132,252,0.22)]"
+              >
+                <div className="text-[11px] font-bold uppercase tracking-wide text-[#F1C40F]">{phase.tag}</div>
+                <h3 className="mt-3 text-lg font-bold text-white font-['Sora'] leading-snug">{phase.project}</h3>
+                <p className="mt-2 text-sm text-[#D1CADB] leading-relaxed">{phase.desc}</p>
+                <ul className="mt-4 flex flex-wrap gap-2">
+                  {phase.items.slice(0, 3).map((item) => (
+                    <li key={item.title} className="px-2.5 py-1 rounded-full bg-[#2A1744] text-[11px] text-[#D8B4FE]">{item.title.replace(/:$/, '')}</li>
+                  ))}
+                </ul>
+                <div className="mt-auto pt-5">
+                  <div className="pt-4 border-t border-[#5C4B8A]/35 flex items-center gap-2 text-sm font-semibold text-white">
+                    <CheckCircle2 className="w-4 h-4 text-[#2ECC71] shrink-0" />
+                    <span>Mentor-reviewed portfolio project</span>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <div className="mt-6 rounded-2xl bg-[#231538] p-5 text-center">
+            <div className="text-lg font-bold text-white font-['Sora']">Learn It. Apply It. Improve It. Showcase It.</div>
+            <p className="mt-1.5 text-sm text-[#D1CADB]">A practical learning experience designed to turn knowledge into demonstrable skills.</p>
           </div>
         </div>
       </section>
 
-      {/* 4. DEDICATED 1:1 MENTORSHIP & CAREER READINESS */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="bg-[#170F28] rounded-2xl p-8 lg:p-10 border border-[#5C4B8A]/60 ">
-          
+      {/* 8. BEYOND THE CLASSROOM: MENTORSHIP & CAREER SUPPORT */}
+      <section className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="bg-[#0E0A18] rounded-3xl p-6 sm:p-10 border border-[#5C4B8A]/50">
+
           <div className="text-center max-w-2xl mx-auto mb-10">
-            <span className="text-xs font-semibold text-[#9B59B6] uppercase tracking-wider">Unrivaled Career Support</span>
-            <h2 className="text-3xl sm:text-4xl font-extrabold text-white mt-1 font-['Sora'] tracking-tight">
-              1-on-1 Mentorship & Career Readiness
+            <span className="text-xs font-semibold text-[#C084FC] uppercase tracking-widest">Beyond the classroom</span>
+            <h2 className="text-3xl sm:text-4xl font-extrabold text-white mt-2 font-['Sora'] tracking-tight">
+              Your Growth, Guided by Experts.
             </h2>
-            <p className="text-sm text-[#D1CADB] mt-2">
-              No generic prerecorded videos or automated chatbots. You get dedicated 1:1 mentorship, real-time doubt resolution, and personalized weekly feedback from active industry practitioners.
+            <p className="text-sm sm:text-base text-[#D1CADB] mt-3 leading-relaxed">
+              Learning doesn't stop after class. Get personalized guidance, practical support, and career-focused preparation throughout your journey.
             </p>
           </div>
 
-          {/* 4 Feature Cards Grid with Edge Glow & Ambient Effects */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-stretch">
-            
-            {/* Card 1: Guidance by Industry Experts */}
-            <div className="relative overflow-hidden p-6 sm:p-7 rounded-2xl bg-gradient-to-b from-[#231538] via-[#1A0F2E] to-[#140C24] border border-[#5C4B8A]/60 hover:border-[#F1C40F]/70 hover:-translate-y-1.5 transition-all duration-300 flex flex-col justify-between group">
-              {/* Top Edge Glow Laser Line */}
-              <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-[#9B59B6]/70 group-hover:via-[#F1C40F] to-transparent transition-all duration-500" />
-              {/* Corner Ambient Radial Glow Orb */}
-              <div className="absolute -top-12 -right-12 w-32 h-32 bg-[radial-gradient(circle,rgba(155,89,182,0.25)_0%,transparent_70%)] rounded-full blur-xl pointer-events-none group-hover:scale-150 group-hover:bg-[radial-gradient(circle,rgba(241,196,15,0.25)_0%,transparent_70%)] transition-all duration-500" />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+            {SUPPORT_CARDS.map(({ icon: Icon, title, desc, highlight, tags }) => (
+              <div
+                key={title}
+                className="group flex flex-col rounded-2xl p-6 bg-[#170F28] border border-[#5C4B8A]/50 transition-all duration-300 hover:-translate-y-1.5 hover:border-[#C084FC] hover:bg-[#1E1334] hover:shadow-[0_0_32px_rgba(192,132,252,0.22)]"
+              >
+                <div className="w-11 h-11 rounded-xl bg-[#2E1A47] text-[#C084FC] flex items-center justify-center transition-all duration-300 group-hover:scale-110 group-hover:text-[#F1C40F] group-hover:shadow-[0_0_20px_rgba(241,196,15,0.35)]">
+                  <Icon className="w-5 h-5" />
+                </div>
+                <h3 className="mt-5 text-lg font-bold text-white font-['Sora'] leading-snug">{title}</h3>
+                <p className="mt-2 text-sm text-[#D1CADB] leading-relaxed">{desc}</p>
 
-              <div className="space-y-4 relative z-10">
-                <div className="flex items-center justify-between">
-                  <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-[#2E1A47] to-[#1C0E33] border border-[#5C4B8A]/60 text-[#F1C40F] flex items-center justify-center group-hover:scale-110 group-hover:border-[#F1C40F]/80 group-hover:shadow-[0_0_20px_rgba(241,196,15,0.4)] transition-all duration-300">
-                    <Users className="w-5 h-5 text-[#F1C40F]" />
-                  </div>
-                  <span className="px-3 py-1 rounded-full bg-[#1B102B]/90 border border-[#5C4B8A]/60 text-[#D8B4FE] text-xs font-mono font-bold group-hover:border-[#F1C40F]/60 group-hover:text-[#F1C40F] transition-all">
-                    Pillar 01
-                  </span>
+                <div className="mt-5 flex items-center gap-2 text-sm font-semibold text-white">
+                  <CheckCircle2 className="w-4 h-4 text-[#2ECC71] shrink-0" />
+                  <span>{highlight}</span>
                 </div>
 
-                <div>
-                  <h3 className="font-bold text-white text-lg font-['Sora'] group-hover:text-white transition-colors">Guidance by Industry Experts</h3>
-                  <p className="text-xs sm:text-sm text-[#D1CADB] leading-relaxed mt-1.5">
-                    Learn directly from senior data engineers and analysts working in top tech organizations. Receive 1-on-1 strategy sessions, real-world portfolio architecture reviews, and personalized career roadmaps.
-                  </p>
-                </div>
-
-                {/* Cool Feature Widget */}
-                <div className="p-3 rounded-xl bg-[#2E1A47]/60 border border-[#5C4B8A]/60 flex items-center justify-between text-xs backdrop-blur-sm">
-                  <div className="flex items-center gap-2">
-                    <span className="relative flex h-2 w-2">
-                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#2ECC71] opacity-75"></span>
-                      <span className="relative inline-flex rounded-full h-2 w-2 bg-[#2ECC71]"></span>
-                    </span>
-                    <span className="text-[#D1CADB] font-medium text-[11px] sm:text-xs">Top Tier Tech Mentors</span>
-                  </div>
-                  <span className="text-[#F1C40F] font-mono text-[10px] sm:text-[11px] font-bold px-2 py-0.5 rounded-full bg-[#1B102B] border border-[#F1C40F]/30">
-                    1:1 Dedicated
-                  </span>
-                </div>
-              </div>
-
-              <div className="mt-5 pt-4 border-t border-[#5C4B8A]/30 flex flex-wrap gap-2 relative z-10">
-                <span className="px-2.5 py-1 rounded-md bg-[#1B102B] text-[#D8B4FE] text-[11px] font-medium border border-[#9B59B6]/30 group-hover:border-[#5C4B8A]/60 transition-colors">
-                  1:1 Strategic Mentoring
-                </span>
-                <span className="px-2.5 py-1 rounded-md bg-[#1B102B] text-[#D8B4FE] text-[11px] font-medium border border-[#9B59B6]/30 group-hover:border-[#5C4B8A]/60 transition-colors">
-                  Portfolio & Resume Polish
-                </span>
-                <span className="px-2.5 py-1 rounded-md bg-[#1B102B] text-[#D8B4FE] text-[11px] font-medium border border-[#9B59B6]/30 group-hover:border-[#5C4B8A]/60 transition-colors">
-                  Domain Roadmap
-                </span>
-              </div>
-            </div>
-
-            {/* Card 2: AI & Expert Doubts Session */}
-            <div className="relative overflow-hidden p-6 sm:p-7 rounded-2xl bg-gradient-to-b from-[#231538] via-[#1A0F2E] to-[#140C24] border border-[#5C4B8A]/60 hover:border-[#F1C40F]/70 hover:-translate-y-1.5 transition-all duration-300 flex flex-col justify-between group">
-              {/* Top Edge Glow Laser Line */}
-              <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-[#9B59B6]/70 group-hover:via-[#F1C40F] to-transparent transition-all duration-500" />
-              {/* Corner Ambient Radial Glow Orb */}
-              <div className="absolute -top-12 -right-12 w-32 h-32 bg-[radial-gradient(circle,rgba(155,89,182,0.25)_0%,transparent_70%)] rounded-full blur-xl pointer-events-none group-hover:scale-150 group-hover:bg-[radial-gradient(circle,rgba(241,196,15,0.25)_0%,transparent_70%)] transition-all duration-500" />
-
-              <div className="space-y-4 relative z-10">
-                <div className="flex items-center justify-between">
-                  <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-[#2E1A47] to-[#1C0E33] border border-[#5C4B8A]/60 text-[#F1C40F] flex items-center justify-center group-hover:scale-110 group-hover:border-[#F1C40F]/80 group-hover:shadow-[0_0_20px_rgba(241,196,15,0.4)] transition-all duration-300">
-                    <BrainCircuit className="w-5 h-5 text-[#F1C40F]" />
-                  </div>
-                  <span className="px-3 py-1 rounded-full bg-[#1B102B]/90 border border-[#5C4B8A]/60 text-[#D8B4FE] text-xs font-mono font-bold group-hover:border-[#F1C40F]/60 group-hover:text-[#F1C40F] transition-all">
-                    Pillar 02
-                  </span>
-                </div>
-
-                <div>
-                  <h3 className="font-bold text-white text-lg font-['Sora'] group-hover:text-white transition-colors">AI & Expert Doubts Session</h3>
-                  <p className="text-xs sm:text-sm text-[#D1CADB] leading-relaxed mt-1.5">
-                    Never stay blocked on a bug or query. Get instant 24/7 AI-powered syntax guidance and problem decomposition, reinforced by scheduled live 1:1 deep-dive doubt resolution sessions with mentor experts.
-                  </p>
-                </div>
-
-                {/* 24/7 AI + Live Mentor Dual Resolution Engine */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-1">
-                  <div className="p-3 rounded-xl bg-[#1B102B]/90 border border-[#5C4B8A]/60 flex items-center gap-2.5 shadow-sm">
-                    <div className="w-8 h-8 rounded-lg bg-[#9B59B6]/20 border border-[#5C4B8A]/60 text-[#D8B4FE] flex items-center justify-center shrink-0">
-                      <Sparkles className="w-4 h-4 text-[#C084FC]" />
-                    </div>
-                    <div className="min-w-0">
-                      <div className="text-[10px] text-[#A7A0B5] font-mono uppercase tracking-wider">Instant Help</div>
-                      <div className="text-xs font-bold text-white truncate font-['Sora']">24/7 AI Assistant</div>
-                    </div>
-                  </div>
-
-                  <div className="p-3 rounded-xl bg-[#1B102B]/90 border border-[#F1C40F]/40 flex items-center gap-2.5 shadow-sm">
-                    <div className="w-8 h-8 rounded-lg bg-[#F1C40F]/15 border border-[#F1C40F]/40 text-[#F1C40F] flex items-center justify-center shrink-0">
-                      <Users className="w-4 h-4 text-[#F1C40F]" />
-                    </div>
-                    <div className="min-w-0">
-                      <div className="text-[10px] text-[#A7A0B5] font-mono uppercase tracking-wider">1:1 Guidance</div>
-                      <div className="text-xs font-bold text-[#F1C40F] truncate font-['Sora']">Live Expert Mentor</div>
-                    </div>
+                <div className="mt-auto pt-5">
+                  <div className="pt-4 border-t border-[#5C4B8A]/35 flex flex-wrap gap-2">
+                    {tags.map((t) => (
+                      <span key={t} className="px-2.5 py-1 rounded-full bg-[#2A1744] text-[#D8B4FE] text-[11px] font-medium transition-colors group-hover:bg-[#35205A]">
+                        {t}
+                      </span>
+                    ))}
                   </div>
                 </div>
               </div>
-
-              <div className="mt-5 pt-4 border-t border-[#5C4B8A]/30 flex flex-wrap gap-2 relative z-10">
-                <span className="px-2.5 py-1 rounded-md bg-[#1B102B] text-[#D8B4FE] text-[11px] font-medium border border-[#9B59B6]/30 group-hover:border-[#5C4B8A]/60 transition-colors">
-                  Instant Syntax Checks
-                </span>
-                <span className="px-2.5 py-1 rounded-md bg-[#1B102B] text-[#D8B4FE] text-[11px] font-medium border border-[#9B59B6]/30 group-hover:border-[#5C4B8A]/60 transition-colors">
-                  1-on-1 Debugging Calls
-                </span>
-                <span className="px-2.5 py-1 rounded-md bg-[#1B102B] text-[#D8B4FE] text-[11px] font-medium border border-[#9B59B6]/30 group-hover:border-[#5C4B8A]/60 transition-colors">
-                  Zero Roadblocks
-                </span>
-              </div>
-            </div>
-
-            {/* Card 3: Weekly Progress Reports */}
-            <div className="relative overflow-hidden p-6 sm:p-7 rounded-2xl bg-gradient-to-b from-[#231538] via-[#1A0F2E] to-[#140C24] border border-[#5C4B8A]/60 hover:border-[#F1C40F]/70 hover:-translate-y-1.5 transition-all duration-300 flex flex-col justify-between group">
-              {/* Top Edge Glow Laser Line */}
-              <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-[#9B59B6]/70 group-hover:via-[#F1C40F] to-transparent transition-all duration-500" />
-              {/* Corner Ambient Radial Glow Orb */}
-              <div className="absolute -top-12 -right-12 w-32 h-32 bg-[radial-gradient(circle,rgba(155,89,182,0.25)_0%,transparent_70%)] rounded-full blur-xl pointer-events-none group-hover:scale-150 group-hover:bg-[radial-gradient(circle,rgba(241,196,15,0.25)_0%,transparent_70%)] transition-all duration-500" />
-
-              <div className="space-y-4 relative z-10">
-                <div className="flex items-center justify-between">
-                  <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-[#2E1A47] to-[#1C0E33] border border-[#5C4B8A]/60 text-[#F1C40F] flex items-center justify-center group-hover:scale-110 group-hover:border-[#F1C40F]/80 group-hover:shadow-[0_0_20px_rgba(241,196,15,0.4)] transition-all duration-300">
-                    <FileText className="w-5 h-5 text-[#F1C40F]" />
-                  </div>
-                  <span className="px-3 py-1 rounded-full bg-[#1B102B]/90 border border-[#5C4B8A]/60 text-[#D8B4FE] text-xs font-mono font-bold group-hover:border-[#F1C40F]/60 group-hover:text-[#F1C40F] transition-all">
-                    Pillar 03
-                  </span>
-                </div>
-
-                <div>
-                  <h3 className="font-bold text-white text-lg font-['Sora'] group-hover:text-white transition-colors">Weekly Progress Reports</h3>
-                  <p className="text-xs sm:text-sm text-[#D1CADB] leading-relaxed mt-1.5">
-                    Detailed weekly learning analytics delivered directly to your student dashboard. Monitor assignment grades, code quality metrics, milestone pacing, and actionable sprint improvement feedback.
-                  </p>
-                </div>
-
-                {/* Cool Feature Widget */}
-                <div className="p-3 rounded-xl bg-[#2E1A47]/60 border border-[#5C4B8A]/60 flex items-center justify-between text-xs backdrop-blur-sm">
-                  <div className="flex items-center gap-2">
-                    <div className="w-2 h-2 rounded-full bg-[#F1C40F]" />
-                    <span className="text-[#D1CADB] font-medium text-[11px] sm:text-xs">Dashboard Telemetry</span>
-                  </div>
-                  <span className="text-[#F1C40F] font-mono text-[10px] sm:text-[11px] font-bold px-2 py-0.5 rounded-full bg-[#1B102B] border border-[#F1C40F]/30">
-                    Weekly Performance Score
-                  </span>
-                </div>
-              </div>
-
-              <div className="mt-5 pt-4 border-t border-[#5C4B8A]/30 flex flex-wrap gap-2 relative z-10">
-                <span className="px-2.5 py-1 rounded-md bg-[#1B102B] text-[#D8B4FE] text-[11px] font-medium border border-[#9B59B6]/30 group-hover:border-[#5C4B8A]/60 transition-colors">
-                  Code Quality Metrics
-                </span>
-                <span className="px-2.5 py-1 rounded-md bg-[#1B102B] text-[#D8B4FE] text-[11px] font-medium border border-[#9B59B6]/30 group-hover:border-[#5C4B8A]/60 transition-colors">
-                  Milestone Benchmarking
-                </span>
-                <span className="px-2.5 py-1 rounded-md bg-[#1B102B] text-[#D8B4FE] text-[11px] font-medium border border-[#9B59B6]/30 group-hover:border-[#5C4B8A]/60 transition-colors">
-                  Personalized Feedback
-                </span>
-              </div>
-            </div>
-
-            {/* Card 4: 100% Placement Assistance */}
-            <div className="relative overflow-hidden p-6 sm:p-7 rounded-2xl bg-gradient-to-b from-[#231538] via-[#1A0F2E] to-[#140C24] border border-[#5C4B8A]/60 hover:border-[#F1C40F]/80 hover:-translate-y-1.5 transition-all duration-300 flex flex-col justify-between group">
-              {/* Top Edge Glow Laser Line */}
-              <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-[#F1C40F]/80 to-transparent transition-all duration-500" />
-              {/* Corner Ambient Radial Glow Orb */}
-              <div className="absolute -top-12 -right-12 w-32 h-32 bg-[radial-gradient(circle,rgba(241,196,15,0.25)_0%,transparent_70%)] rounded-full blur-xl pointer-events-none group-hover:scale-150 transition-all duration-500" />
-
-              <div className="space-y-4 relative z-10">
-                <div className="flex items-center justify-between">
-                  <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-[#2E1A47] to-[#1C0E33] border border-[#F1C40F]/70 text-[#F1C40F] flex items-center justify-center group-hover:scale-110 group-hover:border-[#F1C40F] group-hover:shadow-[0_0_25px_rgba(241,196,15,0.5)] transition-all duration-300">
-                    <Briefcase className="w-5 h-5 text-[#F1C40F]" />
-                  </div>
-                  <span className="px-3 py-1 rounded-full bg-[#1B102B]/90 border border-[#F1C40F]/60 text-[#F1C40F] text-xs font-mono font-bold shadow-[0_0_12px_rgba(241,196,15,0.25)] transition-all">
-                    Pillar 04
-                  </span>
-                </div>
-
-                <div>
-                  <h3 className="font-bold text-white text-lg font-['Sora'] group-hover:text-white transition-colors">100% Placement Assistance</h3>
-                  <p className="text-xs sm:text-sm text-[#D1CADB] leading-relaxed mt-1.5">
-                    Dedicated placement drives, hiring partner referrals, resume and LinkedIn profile optimization, alongside continuous industry career support.
-                  </p>
-                </div>
-
-                {/* Highlighted Spotlight: Technical Mock Interviews */}
-                <div className="p-3.5 rounded-xl bg-gradient-to-r from-[#2E1A47]/90 to-[#3B1F5C]/80 border border-[#F1C40F]/50 shadow-[0_0_20px_rgba(241,196,15,0.18)] flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-lg bg-[#F1C40F]/20 border border-[#F1C40F]/50 text-[#F1C40F] flex items-center justify-center shrink-0">
-                    <Video className="w-4 h-4 text-[#F1C40F]" />
-                  </div>
-                  <div className="text-xs">
-                    <span className="text-[#F1C40F] font-bold block text-xs font-['Sora'] flex items-center gap-1.5">
-                      <span>Technical Mock Interviews Included</span>
-                      <span className="px-1.5 py-0.2 bg-[#F1C40F] text-[#08070B] rounded text-[9px] font-extrabold uppercase tracking-wide">Key</span>
-                    </span>
-                    <span className="text-[#D1CADB] text-[11px] leading-tight block mt-0.5">
-                      Live SQL schema whiteboarding & Python case study defense with tech hiring leads.
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-              <div className="mt-5 pt-4 border-t border-[#5C4B8A]/30 flex flex-wrap gap-2 relative z-10">
-                <span className="px-2.5 py-1 rounded-md bg-[#F1C40F]/15 text-[#F1C40F] text-[11px] font-bold border border-[#F1C40F]/45 shadow-[0_0_10px_rgba(241,196,15,0.2)] flex items-center gap-1.5">
-                  <Sparkles className="w-3 h-3 text-[#F1C40F]" />
-                  Technical Mock Interviews
-                </span>
-                <span className="px-2.5 py-1 rounded-md bg-[#1B102B] text-[#D8B4FE] text-[11px] font-medium border border-[#9B59B6]/30 group-hover:border-[#5C4B8A]/60 transition-colors">
-                  Hiring Partner Drives
-                </span>
-                <span className="px-2.5 py-1 rounded-md bg-[#1B102B] text-[#D8B4FE] text-[11px] font-medium border border-[#9B59B6]/30 group-hover:border-[#5C4B8A]/60 transition-colors">
-                  Resume & LinkedIn Polish
-                </span>
-                <span className="px-2.5 py-1 rounded-md bg-[#1B102B] text-[#D8B4FE] text-[11px] font-medium border border-[#9B59B6]/30 group-hover:border-[#5C4B8A]/60 transition-colors">
-                  Salary Negotiation
-                </span>
-              </div>
-            </div>
-
+            ))}
           </div>
 
-          {/* Bottom Bar: Honest Academic Standard + Talk with a Mentor */}
-          <div className="mt-8 p-5 rounded-2xl bg-[#130B21] border border-[#5C4B8A]/50 flex flex-col sm:flex-row items-center justify-between gap-4">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-[#2E1A47] border border-[#5C4B8A]/60 flex items-center justify-center shrink-0">
-                <ShieldCheck className="w-5 h-5 text-[#F1C40F]" />
-              </div>
-              <div className="text-xs text-[#D1CADB]">
-                <strong className="text-white block font-['Sora'] text-sm">Honest Academic Standard</strong>
-                <span>Clear transparent pricing. No deceptive loan agreements, ISA traps, or hidden conditions.</span>
-              </div>
-            </div>
-
+          <div className="mt-10 text-center">
+            <p className="text-sm text-[#D1CADB]">Discover how personalized mentorship can support your learning journey.</p>
             <button
               onClick={onOpenMentorModal}
-              className="w-full sm:w-auto px-6 py-2.5 text-xs font-bold text-[#08070B] bg-[#F1C40F] hover:bg-[#F39C12] rounded-xl shadow-[0_0_20px_rgba(241,196,15,0.3)] hover:shadow-[0_0_30px_rgba(241,196,15,0.5)] transition-all flex items-center justify-center gap-2 cursor-pointer shrink-0"
+              className="mt-4 px-7 py-3 text-sm font-bold text-[#08070B] bg-[#F5C518] hover:bg-[#F1C40F] rounded-xl transition-all inline-flex items-center gap-2 cursor-pointer hover:scale-[1.03] active:scale-[0.98]"
             >
-              <span>Talk with a Mentor</span>
+              <span>Talk to a Mentor</span>
               <ArrowRight className="w-4 h-4" />
             </button>
           </div>
@@ -449,81 +383,34 @@ export const HomePage: React.FC<HomePageProps> = ({
         </div>
       </section>
 
-      <MentorCarousel />
-
-      {/* 5. LEARNING DIFFERENCE */}
-      <LearningDifference />
-
-      {/* 6. STUDENT FEEDBACK SECTION */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="bg-[#170F28] rounded-2xl p-8 lg:p-10 border border-[#5C4B8A] ">
-          <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-8">
-            <div>
-              <span className="text-xs font-semibold text-[#9B59B6] uppercase tracking-wider">Quality Assurance</span>
-              <h2 className="text-2xl sm:text-3xl font-bold text-white mt-1 font-['Sora']">Student Review Architecture</h2>
-              <p className="text-xs text-[#D1CADB] mt-1 max-w-xl">
-                Every cohort member evaluates modules, lab clarity, and mentorship usefulness upon phase completion.
-              </p>
-            </div>
-            
-            <div className="p-3 rounded-lg bg-[#2E1A47]/50 border border-[#5C4B8A]/50 text-[11px] text-[#D1CADB] max-w-xs">
-              <strong className="text-white">Verified Pipeline Notice:</strong> In adherence to academic integrity, we do not fabricate random student quotes. Showing structured evaluation schema for active cohort cohorts.
-            </div>
+      {/* 9. STUDENT EXPERIENCES: shown only once real testimonials are added in aboutConfig.ts */}
+      {ABOUT_CONFIG.testimonials.length > 0 && (
+        <section className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center max-w-2xl mx-auto mb-8">
+            <span className="text-xs font-semibold uppercase tracking-widest text-[#C084FC]">Student experiences</span>
+            <h2 className="mt-2 text-3xl sm:text-4xl font-extrabold text-white font-['Sora'] tracking-tight">In Their Words</h2>
           </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="p-5 rounded-xl bg-[#231538] border border-[#5C4B8A]/60 hover:border-[#9B59B6] space-y-3 transition-all duration-300">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-bold text-white">Module 1 SQL Evaluation</span>
-                <span className="text-xs font-mono text-emerald-400 bg-emerald-950/60 border border-emerald-800/60 px-2 py-0.5 rounded shadow-[0_0_8px_rgba(16,185,129,0.25)]">4.9 / 5.0 Rating</span>
-              </div>
-              <p className="text-xs text-[#D1CADB] leading-relaxed italic">
-                “Breaking down window functions with visual partitioning made subqueries click after struggling in self-taught tutorials.”
-              </p>
-              <div className="pt-2 border-t border-[#5C4B8A]/30 text-[11px] text-[#A7A0B5] flex items-center justify-between">
-                <span>Verified Cohort Student · SQL Module</span>
-                <span className="font-mono text-white">Oct 2026</span>
-              </div>
-            </div>
-
-            <div className="p-5 rounded-xl bg-[#231538] border border-[#5C4B8A]/60 hover:border-[#9B59B6] space-y-3 transition-all duration-300">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-bold text-white">Lab Facilitator Pod Support</span>
-                <span className="text-xs font-mono text-emerald-400 bg-emerald-950/60 border border-emerald-800/60 px-2 py-0.5 rounded shadow-[0_0_8px_rgba(16,185,129,0.25)]">4.8 / 5.0 Rating</span>
-              </div>
-              <p className="text-xs text-[#D1CADB] leading-relaxed italic">
-                “Having Neha on screen during weekday lab hours to debug syntax errors saved me hours of frustration as a non-technical learner.”
-              </p>
-              <div className="pt-2 border-t border-[#5C4B8A]/30 text-[11px] text-[#A7A0B5] flex items-center justify-between">
-                <span>Verified Cohort Student · Non-Tech Transition</span>
-                <span className="font-mono text-white">Oct 2026</span>
-              </div>
-            </div>
-
-            <div className="p-5 rounded-xl bg-[#231538] border border-[#5C4B8A]/60 hover:border-[#9B59B6] space-y-3 transition-all duration-300">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-bold text-white">Rubric Code Review Rigor</span>
-                <span className="text-xs font-mono text-emerald-400 bg-emerald-950/60 border border-emerald-800/60 px-2 py-0.5 rounded shadow-[0_0_8px_rgba(16,185,129,0.25)]">5.0 / 5.0 Rating</span>
-              </div>
-              <p className="text-xs text-[#D1CADB] leading-relaxed italic">
-                “The line-by-line feedback on query optimization and indexing helped turn my first project into a true portfolio deliverable.”
-              </p>
-              <div className="pt-2 border-t border-[#5C4B8A]/30 text-[11px] text-[#A7A0B5] flex items-center justify-between">
-                <span>Verified Cohort Student · Retail SQL Project</span>
-                <span className="font-mono text-white">Oct 2026</span>
-              </div>
-            </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+            {ABOUT_CONFIG.testimonials.map((t) => (
+              <figure key={t.name} className="p-6 rounded-2xl bg-[#170F28] border border-[#5C4B8A]/50 transition-all duration-300 hover:-translate-y-1.5 hover:border-[#C084FC] hover:shadow-[0_0_32px_rgba(192,132,252,0.22)]">
+                <blockquote className="text-sm text-[#D1CADB] leading-relaxed">"{t.quote}"</blockquote>
+                <figcaption className="mt-4 text-xs">
+                  <strong className="text-white">{t.name}</strong>
+                  <span className="text-[#A7A0B5]"> · {t.background}</span>
+                </figcaption>
+              </figure>
+            ))}
           </div>
-        </div>
-      </section>
+        </section>
+      )}
 
-      {/* 7. FAQS SECTION */}
-      <section className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+      {/* 10. FAQS */}
+      <section className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-10">
-          <span className="text-xs font-semibold text-[#9B59B6] uppercase tracking-wider">Got Questions?</span>
-          <h2 className="text-3xl font-extrabold text-white mt-1 font-['Sora']">Frequently Asked Questions</h2>
-          <p className="text-sm text-[#D1CADB] mt-2">
-            Clear, honest answers about admissions, commitments, mentorship, and career readiness.
+          <span className="text-xs font-semibold text-[#C084FC] uppercase tracking-widest">Here to help</span>
+          <h2 className="text-3xl sm:text-4xl font-extrabold text-white mt-2 font-['Sora'] tracking-tight">Frequently Asked Questions</h2>
+          <p className="text-sm sm:text-base text-[#D1CADB] mt-3 leading-relaxed">
+            From choosing the right program to understanding mentorship and career support, find answers to your most common questions.
           </p>
         </div>
 
@@ -531,10 +418,10 @@ export const HomePage: React.FC<HomePageProps> = ({
           {FAQS.map((faq, idx) => (
             <div
               key={idx}
-              className={`rounded-xl border transition-all duration-300 overflow-hidden ${
+              className={`rounded-2xl border transition-all duration-300 overflow-hidden ${
                 openFaqIndex === idx
-                  ? 'bg-[#1E1235] border-[#9B59B6] '
-                  : 'bg-[#170F28] border-[#9B59B6]/35 hover:border-[#9B59B6]/80 '
+                  ? 'bg-[#1E1235] border-[#C084FC]'
+                  : 'bg-[#170F28] border-[#5C4B8A]/50 hover:border-[#C084FC]/80 hover:bg-[#1B1230]'
               }`}
             >
               <button
@@ -549,45 +436,26 @@ export const HomePage: React.FC<HomePageProps> = ({
                 )}
               </button>
               {openFaqIndex === idx && (
-                <div className="px-5 pb-5 text-xs text-[#D1CADB] leading-relaxed border-t border-[#5C4B8A]/30 pt-3">
+                <div className="px-5 pb-5 text-sm text-[#D1CADB] leading-relaxed border-t border-[#5C4B8A]/30 pt-4">
                   {faq.a}
                 </div>
               )}
             </div>
           ))}
         </div>
-      </section>
 
-      {/* 8. FINAL CTA SECTION */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="bg-gradient-to-r from-[#2E1A47] via-[#1B102B] to-[#2E1A47] border border-[#5C4B8A]/60 text-white rounded-2xl p-8 sm:p-12 text-center relative overflow-hidden transition-all duration-300">
-          <div className="relative z-10 max-w-2xl mx-auto space-y-5">
-            <span className="px-3.5 py-1 bg-[#120A1F] border border-[#5C4B8A]/60 rounded-full text-xs font-medium text-[#F1C40F]">
-              Transform Your Career Trajectory
-            </span>
-            <h2 className="text-3xl sm:text-4xl font-extrabold tracking-tight font-['Sora'] text-white">
-              Ready to Master Data Analytics & GenAI?
-            </h2>
-            <p className="text-sm text-[#D1CADB] leading-relaxed">
-              Join the upcoming live cohort with structured 4-teacher support, hands-on portfolio projects, and dedicated mock interviews.
-            </p>
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-3.5 pt-3">
-              <button
-                onClick={() => onRouteChange('course-details')}
-                className="w-full sm:w-auto px-6 py-3.5 text-sm font-bold text-[#08070B] bg-[#F1C40F] hover:bg-[#F39C12] rounded-xl shadow-[0_0_20px_rgba(241,196,15,0.3)] transition-all flex items-center justify-center gap-2 cursor-pointer"
-              >
-                <span>View Full Program & Pricing</span>
-                <ArrowRight className="w-4 h-4" />
-              </button>
-              <button
-                onClick={onOpenMentorModal}
-                className="w-full sm:w-auto px-6 py-3.5 text-sm font-semibold text-white bg-[#190F29] hover:bg-[#2E1A47] border border-[#5C4B8A] rounded-xl transition-colors flex items-center justify-center gap-2 cursor-pointer"
-              >
-                <MessageSquare className="w-4 h-4 text-[#9B59B6]" />
-                <span>Schedule Mentor Call</span>
-              </button>
-            </div>
-          </div>
+        <div className="mt-8 p-6 sm:p-8 rounded-2xl bg-[#170F28] border border-[#5C4B8A]/50 text-center">
+          <h3 className="text-xl font-bold text-white font-['Sora']">Still Have Questions?</h3>
+          <p className="mt-2 text-sm text-[#D1CADB] leading-relaxed">
+            Our team can help you explore the programs, understand the learning format, and choose the right starting point.
+          </p>
+          <button
+            onClick={onOpenMentorModal}
+            className="mt-5 px-7 py-3 text-sm font-bold text-[#08070B] bg-[#F5C518] hover:bg-[#F1C40F] rounded-xl transition-all inline-flex items-center gap-2 cursor-pointer hover:scale-[1.03] active:scale-[0.98]"
+          >
+            <span>Book Free Counselling</span>
+            <ArrowRight className="w-4 h-4" />
+          </button>
         </div>
       </section>
 

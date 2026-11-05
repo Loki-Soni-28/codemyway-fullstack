@@ -31,6 +31,16 @@ model User {
   supportTickets   SupportTicket[] @relation("StudentTickets")
   supportMessages  SupportMessage[]
   achievements     Achievement[]
+  projectSubmissions ProjectSubmission[]
+  projectReviews     ProjectReview[]
+  mentorSlots        MentorAvailabilitySlot[]
+
+  // Milestone 7 Weekly Progress Check-In Relations
+  batchTeachers            BatchTeacher[]          @relation("TeacherBatchAccess")
+  adminCreatedCheckIns     WeeklyCheckIn[]         @relation("AdminCreatedCheckIns")
+  weeklyStudentAssignments WeeklyCheckInStudent[]  @relation("WeeklyStudentAssignments")
+  weeklyTeacherAssignments WeeklyCheckInStudent[]  @relation("WeeklyTeacherAssignments")
+  weeklyAuditLogs          WeeklyCheckInAuditLog[] @relation("AuditActor")
   payments         Payment[]
 }
 
@@ -84,6 +94,10 @@ model Batch {
 
   students     StudentProfile[]
   classes      Class[]
+
+  // Milestone 7 Weekly Progress Check-In Relations
+  batchTeachers  BatchTeacher[]  @relation("BatchTeacherAccess")
+  weeklyCheckIns WeeklyCheckIn[] @relation("BatchWeeklyCheckIns")
 }
 
 model Module {
@@ -221,6 +235,8 @@ model MentorSession {
   mentor      User     @relation("MentorSessions", fields: [mentorId], references: [id])
   studentId   String
   student     User     @relation("StudentSessions", fields: [studentId], references: [id])
+  slotId      String?  @unique
+  slot        MentorAvailabilitySlot? @relation(fields: [slotId], references: [id])
   date        String   // e.g. "2026-08-31"
   time        String   // e.g. "18:00"
   topic       String
@@ -231,6 +247,21 @@ model MentorSession {
   actionItems String?  // Markdown list of tasks
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+}
+
+model MentorAvailabilitySlot {
+  id        String   @id @default(uuid())
+  mentorId  String
+  mentor    User     @relation(fields: [mentorId], references: [id], onDelete: Cascade)
+  date      String   // "YYYY-MM-DD" in UTC
+  startTime String   // "HH:mm" in 24h UTC
+  endTime   String   // "HH:mm" in 24h UTC
+  isBooked  Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  session   MentorSession?
+
+  @@unique([mentorId, date, startTime])
 }
 
 model Certificate {
@@ -298,8 +329,51 @@ model CourseProject {
   skillsCovered    String   // comma-separated or JSON
   difficulty       String   @default("MEDIUM") // "EASY", "MEDIUM", "HARD"
   outcome          String
+  type             String   @default("minor") // "minor" or "major"
+  resources        String?  // JSON serialized list of ProjectResource
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
+
+  submissions      ProjectSubmission[]
+}
+
+model ProjectSubmission {
+  id                 String   @id @default(uuid())
+  projectId          String
+  project            CourseProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  studentId          String
+  student            User     @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  version            Int      @default(1)
+  projectDescription String
+  githubRepoUrl      String?
+  liveDashboardUrl   String?
+  demoVideoUrl       String?
+  files              String?  // JSON serialized list of uploaded file references
+  status             String   @default("Submitted") // "Submitted", "Under Review", "Revision Required", "Approved"
+  submittedAt        DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  review             ProjectReview?
+
+  @@unique([studentId, projectId])
+}
+
+model ProjectReview {
+  id                   String   @id @default(uuid())
+  submissionId         String   @unique
+  submission           ProjectSubmission @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+  reviewerId           String
+  reviewer             User     @relation(fields: [reviewerId], references: [id])
+  overallScore         Int?     // e.g. 92
+  maxScore             Int      @default(100)
+  writtenFeedback      String
+  criteriaBreakdown    String?  // JSON serialized list of EvaluationCriterion
+  strengths            String?  // JSON serialized list of strengths
+  improvementAreas     String?  // JSON serialized list of improvements
+  revisionInstructions String?
+  status               String   @default("Under Review") // "Under Review", "Revision Required", "Approved"
+  reviewedAt           DateTime @default(now())
+  updatedAt            DateTime @updatedAt
 }
 
 model CourseFeature {
@@ -361,6 +435,180 @@ model Lead {
   createdAt DateTime @default(now())
 
   @@index([source, createdAt])
+}
+
+// ====================================================================
+// Milestone 7: Weekly Progress Check-In Enums & Models
+// ====================================================================
+
+enum WeeklyCheckInStatus {
+  DRAFT
+  ACTIVE
+  COMPLETED
+  SKIPPED
+}
+
+enum CheckInStudentStatus {
+  ASSIGNED
+  SCHEDULED
+  REVIEW_PENDING
+  COMPLETED
+  MISSED
+}
+
+enum CheckInFeedbackStatus {
+  DRAFT
+  PUBLISHED
+}
+
+enum CheckInAuditAction {
+  CHECKIN_CREATED
+  CHECKIN_STATUS_CHANGED
+  CHECKIN_COMPLETED
+  STUDENTS_ALLOCATED
+  STUDENT_REASSIGNED
+  STUDENT_SCHEDULED
+  FEEDBACK_DRAFT_SAVED
+  FEEDBACK_PUBLISHED
+  ACTION_ITEM_CREATED
+  ACTION_ITEM_STATUS_CHANGED
+}
+
+enum OutboxNotificationStatus {
+  PENDING
+  PROCESSING
+  SENT
+  FAILED
+}
+
+model BatchTeacher {
+  id        String   @id @default(uuid())
+  batchId   String
+  batch     Batch    @relation("BatchTeacherAccess", fields: [batchId], references: [id], onDelete: Restrict)
+  teacherId String
+  teacher   User     @relation("TeacherBatchAccess", fields: [teacherId], references: [id], onDelete: Restrict)
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  @@unique([batchId, teacherId])
+  @@index([teacherId, isActive])
+  @@index([batchId, isActive])
+}
+
+model WeeklyCheckIn {
+  id                    String              @id @default(uuid())
+  batchId               String
+  batch                 Batch               @relation("BatchWeeklyCheckIns", fields: [batchId], references: [id], onDelete: Restrict)
+  weekNumber            Int
+  title                 String
+  status                WeeklyCheckInStatus @default(DRAFT)
+  scheduledStartDate    DateTime
+  scheduledEndDate      DateTime
+  defaultDurationMinutes Int                @default(30)
+  skipReason            String?
+  createdById           String
+  createdBy             User                @relation("AdminCreatedCheckIns", fields: [createdById], references: [id], onDelete: Restrict)
+  createdAt             DateTime            @default(now())
+  updatedAt             DateTime            @updatedAt
+
+  students              WeeklyCheckInStudent[]
+  auditLogs             WeeklyCheckInAuditLog[]
+
+  @@unique([batchId, weekNumber])
+  @@index([batchId, status])
+  @@index([scheduledStartDate, scheduledEndDate])
+}
+
+model WeeklyCheckInStudent {
+  id               String               @id @default(uuid())
+  checkInId        String
+  checkIn          WeeklyCheckIn        @relation(fields: [checkInId], references: [id], onDelete: Restrict)
+  studentId        String
+  student          User                 @relation("WeeklyStudentAssignments", fields: [studentId], references: [id], onDelete: Restrict)
+  teacherId        String
+  teacher          User                 @relation("WeeklyTeacherAssignments", fields: [teacherId], references: [id], onDelete: Restrict)
+  status           CheckInStudentStatus @default(ASSIGNED)
+  scheduledStartAt DateTime?
+  scheduledEndAt   DateTime?
+  meetingUrl       String?
+  createdAt        DateTime             @default(now())
+  updatedAt        DateTime             @updatedAt
+
+  feedback         WeeklyCheckInFeedback?
+
+  @@unique([checkInId, studentId])
+  @@index([checkInId, teacherId])
+  @@index([teacherId, status])
+  @@index([studentId, status])
+  @@index([scheduledStartAt, scheduledEndAt])
+}
+
+model WeeklyCheckInFeedback {
+  id                  String                @id @default(uuid())
+  assignmentId        String                @unique
+  assignment          WeeklyCheckInStudent  @relation(fields: [assignmentId], references: [id], onDelete: Restrict)
+  status              CheckInFeedbackStatus @default(DRAFT)
+  strengths           String?
+  areasForImprovement String?
+  generalFeedback     String?
+  nextWeekGoals       String?
+  attendanceRating    Int?
+  taskCompletionScore Int?
+  publishedAt         DateTime?
+  createdAt           DateTime              @default(now())
+  updatedAt           DateTime              @updatedAt
+
+  actionItems         WeeklyCheckInActionItem[]
+
+  @@index([status])
+  @@index([publishedAt])
+}
+
+model WeeklyCheckInActionItem {
+  id          String                @id @default(uuid())
+  feedbackId  String
+  feedback    WeeklyCheckInFeedback @relation(fields: [feedbackId], references: [id], onDelete: Restrict)
+  description String
+  isCompleted Boolean               @default(false)
+  completedAt DateTime?
+  createdAt   DateTime              @default(now())
+  updatedAt   DateTime              @updatedAt
+
+  @@index([feedbackId, isCompleted])
+}
+
+model WeeklyCheckInAuditLog {
+  id         String             @id @default(uuid())
+  checkInId  String
+  checkIn    WeeklyCheckIn      @relation(fields: [checkInId], references: [id], onDelete: Restrict)
+  actorId    String?
+  actor      User?              @relation("AuditActor", fields: [actorId], references: [id], onDelete: Restrict)
+  action     CheckInAuditAction
+  metadata   Json?
+  occurredAt DateTime           @default(now())
+
+  @@index([checkInId, occurredAt])
+  @@index([actorId, occurredAt])
+}
+
+model CheckInNotificationOutbox {
+  id            String                   @id @default(uuid())
+  checkInId     String
+  assignmentId  String?
+  eventType     String
+  recipientId   String
+  payload       Json
+  status        OutboxNotificationStatus @default(PENDING)
+  retryCount    Int                      @default(0)
+  lockedAt      DateTime?
+  leaseUntil    DateTime?
+  lastError     String?
+  idempotencyKey String                  @unique
+  createdAt     DateTime                 @default(now())
+  updatedAt     DateTime                 @updatedAt
+
+  @@index([status, leaseUntil, createdAt])
+  @@index([checkInId])
 }
 
 model Payment {

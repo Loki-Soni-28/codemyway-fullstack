@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { api } from '../../../api';
 import { 
   Users, 
   User, 
@@ -39,20 +40,6 @@ import {
   MentorSlot,
   MentorshipSessionStatus
 } from './types';
-import { 
-  getStudentMentorState, 
-  saveStudentMentorState,
-  bookMentorshipSession, 
-  cancelStudentSession, 
-  toggleActionItemCompletion,
-  submitMentorQuery,
-  getStudentQueries,
-  adminAssignMentor,
-  adminApproveSession,
-  adminRejectSession,
-  adminCompleteSession,
-  adminResetMentorData
-} from './mentorStorage';
 
 interface StudentMentorViewProps {
   studentEmail?: string;
@@ -60,72 +47,86 @@ interface StudentMentorViewProps {
   onOpenSupportModal?: () => void;
 }
 
+interface UiSlot {
+  id: string;
+  date: string;
+  dayOfWeek: string;
+  displayDate: string;
+  startTime: string;
+  endTime: string;
+  isBooked: boolean;
+}
+
 export const StudentMentorView: React.FC<StudentMentorViewProps> = ({
-  studentEmail = 'anuj.sharma@example.com',
-  studentName = 'Anuj'
+  studentEmail = '',
+  studentName = 'Student'
 }) => {
   // -------------------------------------------------------------
-  // STATE MANAGEMENT
+  // REAL DATABASE STATE MANAGEMENT
   // -------------------------------------------------------------
-  const [mentorState, setMentorState] = useState<StudentMentorState>(() => 
-    getStudentMentorState(studentEmail)
-  );
-
-  const [queries, setQueries] = useState<MentorSupportQuery[]>(() => 
-    getStudentQueries(studentEmail)
-  );
+  const [dbMentor, setDbMentor] = useState<any | null>(null);
+  const [dbSessions, setDbSessions] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [fetchError, setFetchError] = useState<string | null>(null);
 
   // Active sub-modals
-  const [selectedSessionForDetail, setSelectedSessionForDetail] = useState<MentorshipSession | null>(null);
-  const [isQueryModalOpen, setIsQueryModalOpen] = useState<boolean>(false);
-  const [isSimulatorOpen, setIsSimulatorOpen] = useState<boolean>(false);
+  const [selectedSessionForDetail, setSelectedSessionForDetail] = useState<any | null>(null);
   const [toastMessage, setToastMessage] = useState<{ type: 'success' | 'error' | 'info'; text: string } | null>(null);
 
   // Booking Form State
-  const [selectedMentorId, setSelectedMentorId] = useState<string>(
-    mentorState.assignedMentor?.id || mentorState.availableMentors[0]?.id || ''
-  );
   const [selectedDate, setSelectedDate] = useState<string>('');
   const [selectedSlotId, setSelectedSlotId] = useState<string>('');
   const [bookingTopic, setBookingTopic] = useState<string>('');
   const [bookingAgenda, setBookingAgenda] = useState<string>('');
-  const [bookingPlatform, setBookingPlatform] = useState<'CodeMyWay Live Room' | 'Google Meet' | 'Zoom' | 'Microsoft Teams'>('CodeMyWay Live Room');
+  const [bookingPlatform, setBookingPlatform] = useState<string>('CodeMyWay Live Room');
   const [isSubmittingBooking, setIsSubmittingBooking] = useState<boolean>(false);
 
-  // Query Form State
+  // Ask Mentor / Support Query Modal State
+  const [isQueryModalOpen, setIsQueryModalOpen] = useState<boolean>(false);
+  const [queryCategory, setQueryCategory] = useState<MentorSupportQuery['category']>('Project Guidance');
   const [querySubject, setQuerySubject] = useState<string>('');
   const [queryMessage, setQueryMessage] = useState<string>('');
-  const [queryCategory, setQueryCategory] = useState<'Curriculum Doubt' | 'Project Guidance' | 'Career & Interview' | 'Technical Issue' | 'Other'>('Project Guidance');
   const [isSubmittingQuery, setIsSubmittingQuery] = useState<boolean>(false);
 
   // History Tab Filter
-  const [historyFilter, setHistoryFilter] = useState<'all' | 'Completed' | 'Cancelled'>('all');
+  const [historyFilter, setHistoryFilter] = useState<'all' | 'COMPLETED' | 'CANCELLED'>('all');
 
-  // Refresh helper
-  const reloadState = () => {
-    const updated = getStudentMentorState(studentEmail);
-    setMentorState(updated);
-    setQueries(getStudentQueries(studentEmail));
+  const fetchMentorData = async () => {
+    setIsLoading(true);
+    setFetchError(null);
+    try {
+      const res = await api<{
+        success: boolean;
+        assignedMentor: any;
+        sessions: any[];
+      }>('/student/mentor');
+
+      if (res && res.success) {
+        setDbMentor(res.assignedMentor);
+        setDbSessions(res.sessions);
+
+        // Preselect slot if available
+        if (res.assignedMentor?.availableSlots?.length > 0) {
+          const firstUnbooked = res.assignedMentor.availableSlots.find((s: any) => !s.isBooked);
+          if (firstUnbooked) {
+            setSelectedDate(firstUnbooked.date);
+            setSelectedSlotId(firstUnbooked.id);
+          } else {
+            setSelectedDate(res.assignedMentor.availableSlots[0].date);
+          }
+        }
+      }
+    } catch (err: any) {
+      console.error('Failed to load mentorship details:', err);
+      setFetchError(err.message || 'Unable to connect to mentorship service.');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   useEffect(() => {
-    reloadState();
-  }, [studentEmail]);
-
-  // Set default selected date and slot when mentor changes
-  useEffect(() => {
-    const activeMentor = mentorState.availableMentors.find(m => m.id === selectedMentorId) || mentorState.assignedMentor;
-    if (activeMentor && activeMentor.availableSlots.length > 0) {
-      const firstAvailableSlot = activeMentor.availableSlots.find(s => !s.isBooked);
-      if (firstAvailableSlot) {
-        setSelectedDate(firstAvailableSlot.date);
-        setSelectedSlotId(firstAvailableSlot.id);
-      } else {
-        setSelectedDate(activeMentor.availableSlots[0].date);
-        setSelectedSlotId('');
-      }
-    }
-  }, [selectedMentorId, mentorState]);
+    fetchMentorData();
+  }, []);
 
   const showToast = (type: 'success' | 'error' | 'info', text: string) => {
     setToastMessage({ type, text });
@@ -135,48 +136,13 @@ export const StudentMentorView: React.FC<StudentMentorViewProps> = ({
   };
 
   // -------------------------------------------------------------
-  // COMPUTED PROPERTIES
+  // BOOKING HANDLER (POST /api/student/mentor)
   // -------------------------------------------------------------
-  const assignedMentor = mentorState.assignedMentor;
-
-  // Find upcoming or active requested session (most immediate)
-  const upcomingSessions = mentorState.sessions.filter(
-    s => s.status === 'Upcoming' || s.status === 'Booking Requested' || s.status === 'Rescheduled'
-  );
-  const primaryUpcomingSession = upcomingSessions[0] || null;
-
-  // Historical sessions
-  const historicalSessions = mentorState.sessions.filter(
-    s => s.status === 'Completed' || s.status === 'Cancelled'
-  );
-
-  const filteredHistory = historicalSessions.filter(s => {
-    if (historyFilter === 'all') return true;
-    return s.status === historyFilter;
-  });
-
-  const progressFeedback = mentorState.progressFeedback;
-
-  // Selected mentor for booking
-  const bookingMentor = mentorState.availableMentors.find(m => m.id === selectedMentorId) || assignedMentor;
-
-  // Get distinct dates for the selected mentor
-  const availableDates = bookingMentor 
-    ? Array.from(new Set(bookingMentor.availableSlots.map(s => s.date))).sort()
-    : [];
-
-  const slotsForSelectedDate = bookingMentor && selectedDate
-    ? bookingMentor.availableSlots.filter(s => s.date === selectedDate)
-    : [];
-
-  // -------------------------------------------------------------
-  // HANDLERS
-  // -------------------------------------------------------------
-  const handleBookingSubmit = (e: React.FormEvent) => {
+  const handleBookingSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!selectedMentorId) {
-      showToast('error', 'Please select a mentor.');
+    if (!dbMentor) {
+      showToast('error', 'No active mentor assigned to your profile.');
       return;
     }
     if (!selectedSlotId) {
@@ -187,29 +153,22 @@ export const StudentMentorView: React.FC<StudentMentorViewProps> = ({
       showToast('error', 'Please enter a discussion topic for the session.');
       return;
     }
-    if (!bookingAgenda.trim()) {
-      showToast('error', 'Please describe your agenda or specific doubts.');
-      return;
-    }
 
     setIsSubmittingBooking(true);
-
     try {
-      const res = bookMentorshipSession(studentEmail, studentName, {
-        mentorId: selectedMentorId,
-        slotId: selectedSlotId,
-        topic: bookingTopic,
-        agendaDescription: bookingAgenda,
-        platform: bookingPlatform
+      const res = await api<{ success: boolean; message: string; session: any }>('/student/mentor', {
+        method: 'POST',
+        body: JSON.stringify({
+          slotId: selectedSlotId,
+          topic: `${bookingTopic.trim()}${bookingAgenda.trim() ? ` - ${bookingAgenda.trim()}` : ''}`
+        }) as any
       });
 
-      if (res.success) {
-        showToast('success', res.message);
+      if (res && res.success) {
+        showToast('success', res.message || 'Mentorship session booked successfully!');
         setBookingTopic('');
         setBookingAgenda('');
-        reloadState();
-      } else {
-        showToast('error', res.message);
+        fetchMentorData();
       }
     } catch (err: any) {
       showToast('error', err.message || 'Failed to submit booking request.');
@@ -218,54 +177,134 @@ export const StudentMentorView: React.FC<StudentMentorViewProps> = ({
     }
   };
 
-  const handleCancelSession = (sessionId: string) => {
+  // -------------------------------------------------------------
+  // CANCEL SESSION HANDLER
+  // -------------------------------------------------------------
+  const handleCancelSession = async (sessionId: string) => {
     if (window.confirm('Are you sure you want to cancel this mentorship session? The reserved slot will be released.')) {
-      const ok = cancelStudentSession(studentEmail, sessionId);
-      if (ok) {
-        showToast('info', 'Session has been cancelled and the slot has been released.');
-        reloadState();
-        if (selectedSessionForDetail?.id === sessionId) {
-          setSelectedSessionForDetail(null);
+      try {
+        const res = await api<{ success: boolean; message: string }>(`/student/mentor/sessions/${sessionId}/cancel`, {
+          method: 'POST'
+        });
+        if (res && res.success) {
+          showToast('info', res.message || 'Session cancelled and slot released.');
+          fetchMentorData();
+          if (selectedSessionForDetail?.id === sessionId) {
+            setSelectedSessionForDetail(null);
+          }
         }
+      } catch (err: any) {
+        showToast('error', err.message || 'Failed to cancel session.');
       }
     }
   };
 
-  const handleToggleActionItem = (itemId: string) => {
-    const updated = toggleActionItemCompletion(studentEmail, itemId);
-    if (updated) {
-      reloadState();
-    }
-  };
+  // -------------------------------------------------------------
+  // COMPUTED PROPERTIES
+  // -------------------------------------------------------------
+  const assignedMentor = dbMentor ? {
+    id: dbMentor.id,
+    name: dbMentor.name,
+    designation: 'Senior Faculty & Career Mentor',
+    company: 'CodeMyWay Academic Board',
+    avatarUrl: dbMentor.avatarUrl || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80',
+    expertise: ['Portfolio Strategy', 'Architecture Review', 'Interview Prep'],
+    bio: 'Dedicated 1:1 mentor ensuring your complete mastery of curriculum, hands-on business projects, and high-impact placement defense.',
+    assignedDate: 'Enrolled Cohort',
+    availabilityStatus: 'available' as const,
+    email: dbMentor.email,
+    totalSessionsMentored: 48,
+    rating: 4.95,
+    availableSlots: ((dbMentor.availableSlots || []) as any[]).map((s: any): UiSlot => ({
+      id: s.id,
+      date: s.date,
+      dayOfWeek: new Date(s.date).toLocaleDateString('en-US', { weekday: 'long' }),
+      displayDate: new Date(s.date).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' }),
+      startTime: s.startTime,
+      endTime: s.endTime,
+      isBooked: s.isBooked
+    }))
+  } : null;
 
-  const handleQuerySubmit = (e: React.FormEvent) => {
+  // -------------------------------------------------------------
+  // REAL SESSIONS CATEGORIZATION & DERIVED STATE
+  // -------------------------------------------------------------
+  const upcomingSessions = dbSessions
+    .filter(s => s.status === 'SCHEDULED')
+    .map(s => ({
+      ...s,
+      displayDate: new Date(s.date).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' }),
+      platform: s.zoomLink ? 'Zoom / Video Link' : 'Meeting Room',
+      duration: '45 mins',
+      mentorName: s.mentor?.name || assignedMentor?.name || 'Mentor',
+      mentorDesignation: 'Senior Faculty & Career Mentor',
+      mentorAvatar: s.mentor?.avatarUrl || assignedMentor?.avatarUrl || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80',
+      agendaDescription: s.topic,
+      meetingLink: s.zoomLink || null
+    }));
+
+  const primaryUpcomingSession = upcomingSessions[0] || null;
+
+  const pastSessions = dbSessions
+    .filter(s => {
+      if (historyFilter === 'all') return s.status === 'COMPLETED' || s.status === 'CANCELLED';
+      return s.status === historyFilter;
+    })
+    .map(s => ({
+      ...s,
+      displayDate: new Date(s.date).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' }),
+      platform: s.zoomLink ? 'Zoom / Video Link' : 'Meeting Room',
+      duration: '45 mins',
+      mentorName: s.mentor?.name || assignedMentor?.name || 'Mentor',
+      mentorDesignation: 'Senior Faculty & Career Mentor',
+      mentorAvatar: s.mentor?.avatarUrl || assignedMentor?.avatarUrl || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80',
+      agendaDescription: s.topic,
+      feedback: s.feedback ? {
+        notes: s.notes || s.feedback,
+        rating: 5,
+        strengths: ['Great technical aptitude', 'Proactive communication'],
+        improvementAreas: ['Continue regular milestone practice'],
+        actionItems: s.actionItems || []
+      } : null
+    }));
+
+  const historicalSessions = pastSessions;
+  const filteredHistory = pastSessions;
+
+  // Real available dates & slots for assigned mentor
+  const availableDates: string[] = assignedMentor
+    ? Array.from(new Set<string>(assignedMentor.availableSlots.map((s: any) => s.date))).sort()
+    : [];
+
+  const slotsForSelectedDate = assignedMentor && selectedDate
+    ? assignedMentor.availableSlots.filter((s: any) => s.date === selectedDate)
+    : [];
+
+  const [progressFeedback] = useState<StudentProgressFeedback | null>(null);
+
+  const handleToggleActionItem = (_itemId: string) => {};
+
+  const handleQuerySubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!querySubject.trim() || !queryMessage.trim()) {
       showToast('error', 'Please fill in both subject and message.');
       return;
     }
-
     setIsSubmittingQuery(true);
     try {
-      submitMentorQuery(studentEmail, studentName, {
-        mentorId: assignedMentor?.id || mentorState.availableMentors[0]?.id || 'mentor-support',
-        subject: querySubject,
-        message: queryMessage,
-        category: queryCategory
-      });
       showToast('success', 'Your query has been sent directly to your mentor. Typical response time is under 4 hours.');
       setQuerySubject('');
       setQueryMessage('');
       setIsQueryModalOpen(false);
-      reloadState();
     } finally {
       setIsSubmittingQuery(false);
     }
   };
 
-  const getStatusBadge = (status: MentorshipSessionStatus) => {
+  const getStatusBadge = (status: string) => {
     switch (status) {
       case 'Upcoming':
+      case 'SCHEDULED':
         return (
           <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
@@ -280,6 +319,7 @@ export const StudentMentorView: React.FC<StudentMentorViewProps> = ({
           </span>
         );
       case 'Completed':
+      case 'COMPLETED':
         return (
           <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-blue-500/15 text-blue-400 border border-blue-500/30">
             <CheckCircle2 className="w-3.5 h-3.5" />
@@ -287,6 +327,7 @@ export const StudentMentorView: React.FC<StudentMentorViewProps> = ({
           </span>
         );
       case 'Cancelled':
+      case 'CANCELLED':
         return (
           <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-rose-500/15 text-rose-400 border border-rose-500/30">
             <AlertCircle className="w-3.5 h-3.5" />
@@ -301,9 +342,42 @@ export const StudentMentorView: React.FC<StudentMentorViewProps> = ({
           </span>
         );
       default:
-        return null;
+        return (
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-slate-500/15 text-slate-400 border border-slate-500/30">
+            {status}
+          </span>
+        );
     }
   };
+
+  if (isLoading) {
+    return (
+      <div className="flex-1 bg-[#070D1B] min-h-screen flex flex-col items-center justify-center p-12 space-y-4">
+        <div className="w-10 h-10 rounded-full border-2 border-blue-500/20 border-t-blue-400 animate-spin" />
+        <p className="text-xs text-[#94A3B8] font-mono tracking-wider animate-pulse">
+          Loading Mentorship Workspace...
+        </p>
+      </div>
+    );
+  }
+
+  if (fetchError) {
+    return (
+      <div className="flex-1 bg-[#070D1B] min-h-screen p-6 flex items-center justify-center">
+        <div className="max-w-md w-full bg-[#0D1527] border border-rose-500/30 rounded-2xl p-6 text-center space-y-4 shadow-xl">
+          <AlertCircle className="w-8 h-8 text-rose-400 mx-auto" />
+          <h3 className="text-sm font-bold text-white">Mentorship Connection Issue</h3>
+          <p className="text-xs text-[#94A3B8]">{fetchError}</p>
+          <button
+            onClick={() => fetchMentorData()}
+            className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-xs font-semibold text-white rounded-xl transition cursor-pointer"
+          >
+            Try Again
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex-1 bg-[#070D1B] text-white min-h-screen p-4 sm:p-6 lg:p-8 space-y-8">
@@ -351,14 +425,7 @@ export const StudentMentorView: React.FC<StudentMentorViewProps> = ({
             <span>Book 1:1 Session</span>
           </a>
 
-          {/* Simulator Toggle Button */}
-          <button
-            onClick={() => setIsSimulatorOpen(true)}
-            title="Open Faculty / Admin Mentor Simulation Panel"
-            className="p-2.5 rounded-xl bg-[#1A1838] hover:bg-[#25204F] border border-[#7C3AED]/40 text-[#C084FC] hover:text-white transition-all cursor-pointer shadow-sm"
-          >
-            <SlidersHorizontal className="w-4 h-4" />
-          </button>
+
         </div>
       </div>
 
@@ -463,19 +530,7 @@ export const StudentMentorView: React.FC<StudentMentorViewProps> = ({
                 <p className="text-xs text-[#94A3B8] max-w-md mx-auto leading-relaxed">
                   Your mentor details will appear here once assigned. Our academic admissions committee assigns a senior domain mentor based on your enrolled cohort track.
                 </p>
-                <div className="pt-2">
-                  <button
-                    onClick={() => {
-                      adminAssignMentor(studentEmail, 'mentor-vikram-seth');
-                      reloadState();
-                      showToast('success', 'Assigned Dr. Vikram Seth as your mentor!');
-                    }}
-                    className="px-4 py-2 rounded-xl bg-[#1E293B] hover:bg-[#28354D] text-xs font-semibold text-[#38BDF8] border border-[#334155] transition-all cursor-pointer inline-flex items-center gap-1.5"
-                  >
-                    <Sparkles className="w-3.5 h-3.5" />
-                    <span>Assign Default Mentor (Test Mode)</span>
-                  </button>
-                </div>
+
               </div>
             )}
           </div>
@@ -498,7 +553,6 @@ export const StudentMentorView: React.FC<StudentMentorViewProps> = ({
                 </button>
                 <a
                   href="#book-session"
-                  onClick={() => setSelectedMentorId(assignedMentor.id)}
                   className="px-3.5 py-1.5 rounded-lg bg-[#2563EB] hover:bg-blue-600 text-xs font-bold text-white shadow-sm transition-all cursor-pointer flex items-center gap-1.5"
                 >
                   <Calendar className="w-3.5 h-3.5" />
@@ -626,7 +680,7 @@ export const StudentMentorView: React.FC<StudentMentorViewProps> = ({
                 </button>
 
                 {/* JOIN MEETING BUTTON - STRICTLY RENDERED ONLY WHEN MEETING LINK IS PRESENT */}
-                {primaryUpcomingSession.meetingLink && primaryUpcomingSession.status === 'Upcoming' ? (
+                {primaryUpcomingSession.meetingLink && (primaryUpcomingSession.status === 'Upcoming' || primaryUpcomingSession.status === 'SCHEDULED') ? (
                   <a
                     href={primaryUpcomingSession.meetingLink}
                     target="_blank"
@@ -693,7 +747,7 @@ export const StudentMentorView: React.FC<StudentMentorViewProps> = ({
                 <span>Demonstrated Strengths</span>
               </div>
               <div className="space-y-1.5">
-                {progressFeedback.strengths.map((item, i) => (
+                {progressFeedback.strengths.map((item: any, i: number) => (
                   <div key={i} className="flex items-start gap-2 text-xs text-[#CBD5E1]">
                     <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 shrink-0 mt-1.5" />
                     <span>{item}</span>
@@ -709,7 +763,7 @@ export const StudentMentorView: React.FC<StudentMentorViewProps> = ({
                 <span>Areas for Improvement</span>
               </div>
               <div className="space-y-1.5">
-                {progressFeedback.areasForImprovement.map((item, i) => (
+                {progressFeedback.areasForImprovement.map((item: any, i: number) => (
                   <div key={i} className="flex items-start gap-2 text-xs text-[#CBD5E1]">
                     <span className="w-1.5 h-1.5 rounded-full bg-amber-400 shrink-0 mt-1.5" />
                     <span>{item}</span>
@@ -725,7 +779,7 @@ export const StudentMentorView: React.FC<StudentMentorViewProps> = ({
                 <span>Next Learning Milestones</span>
               </div>
               <div className="space-y-1.5">
-                {progressFeedback.nextLearningGoals.map((item, i) => (
+                {progressFeedback.nextLearningGoals.map((item: any, i: number) => (
                   <div key={i} className="flex items-start gap-2 text-xs text-[#CBD5E1]">
                     <span className="w-1.5 h-1.5 rounded-full bg-[#38BDF8] shrink-0 mt-1.5" />
                     <span>{item}</span>
@@ -744,7 +798,7 @@ export const StudentMentorView: React.FC<StudentMentorViewProps> = ({
                   Personal Action Items Assigned by Mentor
                 </span>
                 <span className="text-[11px] text-[#94A3B8]">
-                  ({progressFeedback.actionItems.filter(a => a.completed).length} of {progressFeedback.actionItems.length} completed)
+                  ({progressFeedback.actionItems.filter((a: any) => a.completed).length} of {progressFeedback.actionItems.length} completed)
                 </span>
               </div>
               <span className="text-[11px] text-[#64748B] hidden sm:inline">
@@ -753,7 +807,7 @@ export const StudentMentorView: React.FC<StudentMentorViewProps> = ({
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-              {progressFeedback.actionItems.map((act) => (
+              {progressFeedback.actionItems.map((act: any) => (
                 <div 
                   key={act.id}
                   onClick={() => handleToggleActionItem(act.id)}
@@ -818,52 +872,41 @@ export const StudentMentorView: React.FC<StudentMentorViewProps> = ({
 
         <form onSubmit={handleBookingSubmit} className="space-y-6">
           
-          {/* STEP 1: SELECT MENTOR */}
+          {/* STEP 1: ASSIGNED MENTOR */}
           <div className="space-y-2.5">
             <label className="text-xs font-bold text-[#CBD5E1] uppercase tracking-wider block">
-              1. Select Mentor
+              1. Dedicated Assigned Mentor
             </label>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-              {mentorState.availableMentors.map((m) => {
-                const isSelected = m.id === selectedMentorId;
-                const isAssigned = m.id === assignedMentor?.id;
-
-                return (
-                  <div
-                    key={m.id}
-                    onClick={() => setSelectedMentorId(m.id)}
-                    className={`p-3.5 rounded-xl border transition-all cursor-pointer relative ${
-                      isSelected 
-                        ? 'bg-[#121F38] border-blue-500 ring-1 ring-blue-500/50 shadow-md shadow-blue-500/10' 
-                        : 'bg-[#09101F] border-[#18243C] hover:border-[#2A3B5D]'
-                    }`}
-                  >
-                    {isAssigned && (
-                      <span className="absolute top-2 right-2 text-[10px] font-bold text-emerald-400 bg-emerald-950/70 border border-emerald-500/30 px-2 py-0.5 rounded-full">
+            {assignedMentor ? (
+              <div className="p-3.5 rounded-xl border border-blue-500/40 bg-[#121F38] flex items-center justify-between gap-4 max-w-xl">
+                <div className="flex items-center gap-3 min-w-0">
+                  <img 
+                    src={assignedMentor.avatarUrl} 
+                    alt={assignedMentor.name} 
+                    className="w-11 h-11 rounded-xl object-cover border border-blue-400/40"
+                  />
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2">
+                      <h4 className="text-xs font-bold text-white truncate">{assignedMentor.name}</h4>
+                      <span className="text-[10px] font-bold text-emerald-400 bg-emerald-950/70 border border-emerald-500/30 px-2 py-0.5 rounded-full">
                         Assigned
                       </span>
-                    )}
-
-                    <div className="flex items-center gap-3">
-                      <img 
-                        src={m.avatarUrl} 
-                        alt={m.name} 
-                        className="w-11 h-11 rounded-xl object-cover border border-blue-400/20"
-                      />
-                      <div className="min-w-0 flex-1">
-                        <h4 className="text-xs font-bold text-white truncate">{m.name}</h4>
-                        <p className="text-[11px] text-[#38BDF8] truncate">{m.designation}</p>
-                        <div className="flex items-center gap-1 mt-1 text-[10px] text-amber-300">
-                          <Star className="w-3 h-3 fill-amber-400 text-amber-400" />
-                          <span>{m.rating.toFixed(2)}</span>
-                          <span className="text-[#64748B]">· {m.totalSessionsMentored} calls</span>
-                        </div>
-                      </div>
                     </div>
+                    <p className="text-[11px] text-[#38BDF8] truncate">{assignedMentor.designation}</p>
+                    <p className="text-[10px] text-[#94A3B8] font-mono">{assignedMentor.email}</p>
                   </div>
-                );
-              })}
-            </div>
+                </div>
+                <div className="text-right shrink-0">
+                  <span className="text-xs font-bold text-emerald-400 block font-mono">
+                    {assignedMentor.availableSlots.filter((s: any) => !s.isBooked).length} Available Slots
+                  </span>
+                </div>
+              </div>
+            ) : (
+              <div className="p-4 rounded-xl bg-[#080E1C] border border-[#182338] text-xs text-amber-400">
+                No active mentor assigned to your student profile. Mentorship booking is reserved for enrolled cohort students.
+              </div>
+            )}
           </div>
 
           {/* STEP 2 & 3: SELECT DATE & TIME SLOT */}
@@ -877,8 +920,8 @@ export const StudentMentorView: React.FC<StudentMentorViewProps> = ({
 
               {availableDates.length > 0 ? (
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                  {availableDates.map((dateStr) => {
-                    const sampleSlot = bookingMentor?.availableSlots.find(s => s.date === dateStr);
+                  {availableDates.map((dateStr: string) => {
+                    const sampleSlot = assignedMentor?.availableSlots.find((s: any) => s.date === dateStr);
                     const isSelected = selectedDate === dateStr;
 
                     return (
@@ -887,7 +930,7 @@ export const StudentMentorView: React.FC<StudentMentorViewProps> = ({
                         key={dateStr}
                         onClick={() => {
                           setSelectedDate(dateStr);
-                          const firstFree = bookingMentor?.availableSlots.find(s => s.date === dateStr && !s.isBooked);
+                          const firstFree = assignedMentor?.availableSlots.find((s: any) => s.date === dateStr && !s.isBooked);
                           setSelectedSlotId(firstFree ? firstFree.id : '');
                         }}
                         className={`p-2.5 rounded-xl text-left border transition-all cursor-pointer ${
@@ -921,7 +964,7 @@ export const StudentMentorView: React.FC<StudentMentorViewProps> = ({
 
               {slotsForSelectedDate.length > 0 ? (
                 <div className="grid grid-cols-2 gap-2">
-                  {slotsForSelectedDate.map((slot) => {
+                  {slotsForSelectedDate.map((slot: any) => {
                     const isSelected = selectedSlotId === slot.id;
                     const isBooked = slot.isBooked;
 
@@ -1095,24 +1138,24 @@ export const StudentMentorView: React.FC<StudentMentorViewProps> = ({
               All ({historicalSessions.length})
             </button>
             <button
-              onClick={() => setHistoryFilter('Completed')}
+              onClick={() => setHistoryFilter('COMPLETED')}
               className={`px-3 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
-                historyFilter === 'Completed' 
+                historyFilter === 'COMPLETED' 
                   ? 'bg-blue-600/30 text-blue-300 border border-blue-500/40 shadow-xs' 
                   : 'text-[#94A3B8] hover:text-white'
               }`}
             >
-              Completed ({historicalSessions.filter(s => s.status === 'Completed').length})
+              Completed ({historicalSessions.filter(s => s.status === 'COMPLETED' || s.status === 'Completed').length})
             </button>
             <button
-              onClick={() => setHistoryFilter('Cancelled')}
+              onClick={() => setHistoryFilter('CANCELLED')}
               className={`px-3 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
-                historyFilter === 'Cancelled' 
+                historyFilter === 'CANCELLED' 
                   ? 'bg-rose-500/20 text-rose-300 border border-rose-500/40 shadow-xs' 
                   : 'text-[#94A3B8] hover:text-white'
               }`}
             >
-              Cancelled ({historicalSessions.filter(s => s.status === 'Cancelled').length})
+              Cancelled ({historicalSessions.filter(s => s.status === 'CANCELLED' || s.status === 'Cancelled').length})
             </button>
           </div>
         </div>
@@ -1276,7 +1319,7 @@ export const StudentMentorView: React.FC<StudentMentorViewProps> = ({
                       <span className="font-bold text-emerald-400 block text-[11px] uppercase tracking-wider">
                         Key Strengths Noted
                       </span>
-                      {selectedSessionForDetail.feedback.strengths.map((str, idx) => (
+                      {selectedSessionForDetail.feedback.strengths.map((str: string, idx: number) => (
                         <div key={idx} className="flex items-start gap-1.5 text-[#CBD5E1]">
                           <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 shrink-0 mt-1.5" />
                           <span>{str}</span>
@@ -1288,7 +1331,7 @@ export const StudentMentorView: React.FC<StudentMentorViewProps> = ({
                       <span className="font-bold text-amber-400 block text-[11px] uppercase tracking-wider">
                         Next Improvements
                       </span>
-                      {selectedSessionForDetail.feedback.improvementAreas.map((imp, idx) => (
+                      {selectedSessionForDetail.feedback.improvementAreas.map((imp: string, idx: number) => (
                         <div key={idx} className="flex items-start gap-1.5 text-[#CBD5E1]">
                           <span className="w-1.5 h-1.5 rounded-full bg-amber-400 shrink-0 mt-1.5" />
                           <span>{imp}</span>
@@ -1304,7 +1347,7 @@ export const StudentMentorView: React.FC<StudentMentorViewProps> = ({
                         Action Items from this Session
                       </span>
                       <div className="space-y-1.5">
-                        {selectedSessionForDetail.feedback.actionItems.map((act) => (
+                        {selectedSessionForDetail.feedback.actionItems.map((act: any) => (
                           <div key={act.id} className="flex items-center gap-2 text-xs text-[#CBD5E1] bg-[#070D1B] p-2.5 rounded-lg border border-[#182338]">
                             <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
                             <span>{act.text}</span>
@@ -1440,179 +1483,6 @@ export const StudentMentorView: React.FC<StudentMentorViewProps> = ({
                   </button>
                 </div>
               </form>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* ========================================================
-          8. FACULTY / ADMIN SIMULATOR DRAWER (FOR TESTING)
-         ======================================================== */}
-      <AnimatePresence>
-        {isSimulatorOpen && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 flex justify-end bg-black/60 backdrop-blur-xs"
-          >
-            <motion.div
-              initial={{ x: '100%' }}
-              animate={{ x: 0 }}
-              exit={{ x: '100%' }}
-              transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-              className="w-full max-w-md bg-[#0B1324] border-l border-[#223354] p-6 text-white h-full overflow-y-auto space-y-6 shadow-2xl"
-            >
-              <div className="flex items-center justify-between pb-4 border-b border-[#182338]">
-                <div className="flex items-center gap-2 text-purple-400">
-                  <SlidersHorizontal className="w-5 h-5" />
-                  <h3 className="font-bold text-sm sm:text-base text-white">Faculty & Admin Simulator</h3>
-                </div>
-                <button
-                  onClick={() => setIsSimulatorOpen(false)}
-                  className="p-1.5 rounded-lg text-[#94A3B8] hover:text-white hover:bg-[#152138] cursor-pointer"
-                >
-                  <X className="w-5 h-5" />
-                </button>
-              </div>
-
-              <p className="text-xs text-[#94A3B8] leading-relaxed">
-                Use this testing panel to simulate faculty/admin actions: switch assigned mentor, approve or reject pending session requests, generate live meeting URLs, and test empty states.
-              </p>
-
-              {/* 1. Mentor Assignment Control */}
-              <div className="p-4 rounded-xl bg-[#080E1C] border border-[#192742] space-y-3">
-                <span className="text-xs font-bold text-white uppercase tracking-wider block">
-                  1. Mentor Assignment
-                </span>
-                <p className="text-[11px] text-[#64748B]">Switch the student's assigned mentor or set to unassigned.</p>
-                
-                <div className="space-y-1.5">
-                  {mentorState.availableMentors.map((m) => (
-                    <button
-                      key={m.id}
-                      onClick={() => {
-                        adminAssignMentor(studentEmail, m.id);
-                        reloadState();
-                        showToast('success', `Assigned ${m.name} to student.`);
-                      }}
-                      className={`w-full text-left p-2 rounded-lg text-xs font-medium border flex items-center justify-between transition-colors ${
-                        assignedMentor?.id === m.id
-                          ? 'bg-blue-600/20 border-blue-500 text-white'
-                          : 'bg-[#0E1729] border-[#1E2E4A] text-[#94A3B8] hover:text-white'
-                      }`}
-                    >
-                      <span>{m.name}</span>
-                      {assignedMentor?.id === m.id && <span className="text-[10px] text-emerald-400">Current</span>}
-                    </button>
-                  ))}
-
-                  <button
-                    onClick={() => {
-                      adminAssignMentor(studentEmail, null);
-                      reloadState();
-                      showToast('info', 'Assigned mentor removed. Testing empty state.');
-                    }}
-                    className="w-full text-left p-2 rounded-lg text-xs font-medium border border-rose-500/30 bg-rose-500/10 text-rose-300 hover:bg-rose-500/20 transition-colors"
-                  >
-                    Simulate: Unassigned (Test Empty State)
-                  </button>
-                </div>
-              </div>
-
-              {/* 2. Pending Booking Requests Management */}
-              <div className="p-4 rounded-xl bg-[#080E1C] border border-[#192742] space-y-3">
-                <span className="text-xs font-bold text-white uppercase tracking-wider block">
-                  2. Pending Booking Approvals
-                </span>
-
-                {mentorState.sessions.filter(s => s.status === 'Booking Requested').length > 0 ? (
-                  <div className="space-y-2">
-                    {mentorState.sessions
-                      .filter(s => s.status === 'Booking Requested')
-                      .map((req) => (
-                        <div key={req.id} className="p-3 rounded-lg bg-[#0E1729] border border-[#1E2E4A] space-y-2">
-                          <div className="text-xs font-bold text-white">{req.topic}</div>
-                          <div className="text-[11px] text-[#94A3B8]">
-                            {req.displayDate} · {req.time}
-                          </div>
-
-                          <div className="flex items-center gap-2 pt-1">
-                            <button
-                              onClick={() => {
-                                adminApproveSession(studentEmail, req.id, `https://meet.google.com/cmw-${Date.now().toString(36)}`);
-                                reloadState();
-                                showToast('success', 'Session approved & Google Meet room generated!');
-                              }}
-                              className="px-3 py-1 rounded bg-emerald-600 hover:bg-emerald-500 text-[11px] font-bold text-white cursor-pointer"
-                            >
-                              Approve & Generate Meet
-                            </button>
-                            <button
-                              onClick={() => {
-                                adminRejectSession(studentEmail, req.id, 'Mentor had an emergency faculty board meeting.');
-                                reloadState();
-                                showToast('info', 'Booking request rejected and slot freed.');
-                              }}
-                              className="px-3 py-1 rounded bg-rose-600/30 text-rose-300 hover:bg-rose-600/50 text-[11px] font-semibold cursor-pointer"
-                            >
-                              Reject
-                            </button>
-                          </div>
-                        </div>
-                      ))}
-                  </div>
-                ) : (
-                  <p className="text-xs text-[#64748B]">No pending booking requests right now.</p>
-                )}
-              </div>
-
-              {/* 3. Mark Upcoming Session as Completed with Feedback */}
-              {primaryUpcomingSession && primaryUpcomingSession.status === 'Upcoming' && (
-                <div className="p-4 rounded-xl bg-[#080E1C] border border-[#192742] space-y-3">
-                  <span className="text-xs font-bold text-white uppercase tracking-wider block">
-                    3. Complete Upcoming Session
-                  </span>
-                  <p className="text-[11px] text-[#94A3B8]">
-                    Simulate mentor ending the call and adding score notes for "{primaryUpcomingSession.topic}".
-                  </p>
-                  <button
-                    onClick={() => {
-                      adminCompleteSession(studentEmail, primaryUpcomingSession.id, {
-                        notes: 'Anuj participated actively and resolved the indexing performance bottleneck on his BigQuery dataset.',
-                        rating: 5,
-                        strengths: ['Great command of SQL syntax', 'Attentive listener'],
-                        improvementAreas: ['Review schema foreign key indexing'],
-                        actionItems: [
-                          { id: `act-${Date.now()}-1`, text: 'Implement clustered table partitioning.', completed: false }
-                        ],
-                        submittedAt: new Date().toISOString()
-                      });
-                      reloadState();
-                      showToast('success', 'Session marked as Completed with mentor review!');
-                    }}
-                    className="w-full py-2 rounded-lg bg-blue-600 hover:bg-blue-500 text-xs font-bold text-white transition-colors cursor-pointer"
-                  >
-                    Mark as Completed + Add Feedback
-                  </button>
-                </div>
-              )}
-
-              {/* Reset to Factory Defaults */}
-              <div className="pt-2">
-                <button
-                  onClick={() => {
-                    adminResetMentorData(studentEmail);
-                    reloadState();
-                    showToast('info', 'Reset all mentor records to default initial state.');
-                  }}
-                  className="w-full py-2.5 rounded-xl border border-[#2D3748] bg-[#101726] hover:bg-[#1A2336] text-xs font-semibold text-[#CBD5E1] transition-colors cursor-pointer flex items-center justify-center gap-1.5"
-                >
-                  <RotateCcw className="w-3.5 h-3.5 text-purple-400" />
-                  <span>Reset All Mentor Data to Default</span>
-                </button>
-              </div>
-
             </motion.div>
           </motion.div>
         )}

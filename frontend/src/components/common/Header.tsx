@@ -41,15 +41,20 @@ export const Header: React.FC<HeaderProps> = ({
     },
     {
       label: 'Mentors',
-      isActive: false,
+      isActive: currentRoute === 'mentors',
       onSelect: () => {
         setMobileMenuOpen(false);
         onOpenMentors();
+        window.scrollTo({ top: 0, behavior: 'smooth' });
       },
     },
     { label: 'About Us', isActive: currentRoute === 'about', onSelect: () => handleNav('about') },
     { label: 'Contact', isActive: currentRoute === 'contact', onSelect: () => handleNav('contact') },
   ];
+
+  const isStaff = currentUser?.role === 'INSTRUCTOR' || currentUser?.role === 'MENTOR' || currentUser?.role === 'ADMIN';
+  const portalRoute: NavigationRoute = isStaff ? 'faculty-reviews' : 'student-dashboard';
+  const portalLabel = isStaff ? 'Faculty Reviews' : 'My Dashboard';
 
   const activeCls = 'text-[#9B59B6] font-semibold border-b-2 border-[#9B59B6] pb-0.5';
 
@@ -88,7 +93,8 @@ export const Header: React.FC<HeaderProps> = ({
           {currentUser?.isLoggedIn ? (
             <>
               <button
-                onClick={() => handleNav('student-dashboard')}
+                onClick={() => handleNav(portalRoute)}
+                title={portalLabel}
                 className="px-3.5 py-1.5 text-xs font-bold text-white bg-purple-600/25 hover:bg-purple-600/35 border border-purple-500/40 rounded-lg flex items-center gap-2 transition-colors cursor-pointer"
               >
                 <div className="w-5 h-5 rounded-full bg-gradient-to-r from-purple-500 to-indigo-500 text-white flex items-center justify-center text-[10px] font-bold">
@@ -152,11 +158,11 @@ export const Header: React.FC<HeaderProps> = ({
             {currentUser?.isLoggedIn ? (
               <>
                 <button
-                  onClick={() => handleNav('student-dashboard')}
+                  onClick={() => handleNav(portalRoute)}
                   className="w-full text-left py-3 text-base font-medium border-b border-[#5C4B8A]/20 text-[#D1CADB] flex items-center gap-2"
                 >
                   <GraduationCap className="w-4 h-4 text-[#9B59B6]" />
-                  <span>My Dashboard</span>
+                  <span>{portalLabel}</span>
                 </button>
                 <button
                   onClick={() => {
